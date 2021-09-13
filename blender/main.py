@@ -17,6 +17,7 @@ from helper_functions import *
 from builds import *
 
 # /Applications/Blender.app/Contents/MacOS/Blender in terminal to open blender
+# On windows, open blender app, then click "window -> toggle system console"
 
 render_anatomy = False
 export = False
@@ -30,10 +31,10 @@ if build_mount2:
     initialize_blender()
     mount = HeadMount2()
     # mount.pixel()
-    mount.objects.append(mount.pixel())
+    # mount.objects.append(mount.pixel())
     # mount.objects.append(mount.holder())
     # mount.objects.append(mount.cap())
-    # mount.objects.append(mount.cover())
+    mount.objects.append(mount.cover())
     # mount.objects.append(mount.stopper())
     # mount.objects.append(mount.stabber())
     # mount.objects.append(mount.surgery())
@@ -52,9 +53,9 @@ if build_mount:
     mount = HeadMount()
     # mount.pixel()
     # mount.objects.append(mount.pixel())
-    mount.objects.append(mount.holder())
-    # mount.objects.append(mount.cap())
-    # mount.objects.append(mount.cover())
+    # mount.objects.append(mount.holder())
+    mount.objects.append(mount.cap())
+    mount.objects.append(mount.cover())
     # mount.objects.append(mount.stopper())
     # mount.objects.append(mount.stabber())
     # mount.objects.append(mount.surgery())

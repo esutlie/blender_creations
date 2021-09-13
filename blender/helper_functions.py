@@ -15,7 +15,6 @@ def boolean_modifier(obj, cutter, modifier='DIFFERENCE'):
     bpy.context.object.modifiers["Boolean"].operation = modifier
     bpy.context.object.modifiers["Boolean"].object = cutter
     bpy.ops.object.modifier_apply(modifier="Boolean")
-    # bpy.ops.object.modifier_apply(apply_as='DATA', modifier="Boolean")
 
 
 def vertex_object(name, vertex):  # string, tuple
