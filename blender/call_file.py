@@ -1,2 +1,2 @@
-filename = "/Users/elissasutlief/github/blender-creations/main.py"
+filename = "/Users/elissasutlief/github/blender_creations/main.py"
 exec(compile(open(filename).read(), filename, 'exec'))

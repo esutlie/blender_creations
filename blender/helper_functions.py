@@ -289,7 +289,7 @@ def deactivate(objects):
 
 def export_stl(p, scale=1):
     # This makes the directory for the exports
-    path = bpy.path.abspath('//stlexports/' + datetime.now().strftime("%Y-%m-%d-%H:%M:%S") + '/')
+    path = bpy.path.abspath('//stlexports/' + datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + '/')
     if not os.path.exists(path):
         os.makedirs(path)
 

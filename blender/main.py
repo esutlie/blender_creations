@@ -20,21 +20,21 @@ from builds import *
 # On windows, open blender app, then click "window -> toggle system console"
 
 render_anatomy = False
-export = False
+export = True
 build_mount = False
 build_mount2 = True
 build_chamber = False
-shield = False
+shield = True
 
 # This is for the neuropixel head mount system
 if build_mount2:
     initialize_blender()
     mount = HeadMount2()
-    # mount.pixel()
+    mount.pixel()
     # mount.objects.append(mount.pixel())
-    # mount.objects.append(mount.holder())
-    # mount.objects.append(mount.cap())
-    mount.objects.append(mount.cover())
+    mount.objects.append(mount.holder(shield=shield))
+    mount.objects.append(mount.cap(shield=shield))
+    mount.objects.append(mount.cover(shield=shield))
     # mount.objects.append(mount.stopper())
     # mount.objects.append(mount.stabber())
     # mount.objects.append(mount.surgery())
