@@ -4424,6 +4424,7 @@ class Chamber:
         self.angle_side = 0.01 * pi / 180
         self.thickness = .7
         self.clearance_base = .03
+        self.extra_back_clearance = .03
         # self.top_clearance = .1
         self.c_port = .03
         self.clearance_fastener = .023
@@ -4519,35 +4520,11 @@ class Chamber:
             f = f / (1 + f)
 
         middle = (self.internal_points[-1][1] + self.external_points[-1][1]) / 2
-        commands = [
-            {
-                'select': ([-100, 100], [-100, middle], [-100, 100]),
-                'do': 'resize',
-                'value': (self.base_back_factor, self.base_back_factor, 1),
-                'overrider': self.overrider
-            },
-            {
-                'select': ([-100, 100], [-100, self.external_points[-1][1]], [-100, 100]),
-                'do': 'resize',
-                'value': (1.00, 1, 1)
-            },
-            {
-                'select': ([-100, 100], [-100, middle], [-100, 100]),
-                'do': 'extrude',
-                'extra_do': ['resize'],
-                'value': (.7, 1, 1)
-            },
-        ]
-        [manipulate(obj_frame, command) for command in commands]
-
-        bpy.ops.mesh.select_all(action='DESELECT')
-        bpy.ops.mesh.select_mode(type="FACE")
-        bpy.ops.object.mode_set(mode='OBJECT')
-        if self.segments == 3:
-            verts = [0, 1, 4, 6, 8, 10, 18, 22, 30, 34, 36, 37, 40, 42, 44, 46]
-        else:
-            # verts = [6, 18, 28, 25, 24, 32, 34, 22, 10]  # Outside
-            verts = [6, 18, 34, 22, 10, 4, 1, 0, 8]  # Inside
+        select_verts(obj_frame, INF, [-100, middle], INF)
+        resize((self.base_back_factor, self.base_back_factor, 1), overrider=self.overrider)
+        extrude_move([0, -self.extra_back_clearance, 0])
+        extrude()
+        resize((.7, 1, 1))
 
         for face in obj_frame.data.polygons:
             face.select = any(i in verts for i in face.vertices) and facing_down(face.normal)
@@ -4563,8 +4540,10 @@ class Chamber:
             if vert.co.z < -(self.h_locking - .1) and vert.co.y < sum(y_inner_shifts) - .1:
                 verts.append(vert.index)
 
-        for face in obj_frame.data.polygons:
-            face.select = any(i in verts for i in face.vertices) and facing_down(face.normal)
+        select_verts(obj_frame, INF, [self.thickness / 2, -100], [0, 0])
+        extrude_move((0, 0, -self.h_locking))
+        select_verts(obj_frame, INF, [-self.width_port / 3, -100], [-self.h_locking, -self.h_locking])
+        extrude_move((0, 0, -self.h_base - self.h_bottom))
 
         bpy.ops.object.mode_set(mode='EDIT')
         bpy.ops.mesh.extrude_region_move(TRANSFORM_OT_translate={"value": (0, 0, -self.h_base - self.h_bottom)})
@@ -4646,7 +4625,7 @@ class Chamber:
         bpy.ops.object.modifier_add(type='BOOLEAN')
         bpy.context.object.modifiers["Boolean"].operation = 'DIFFERENCE'
         bpy.context.object.modifiers["Boolean"].object = obj_handle
-        bpy.ops.object.modifier_apply(apply_as='DATA', modifier="Boolean")
+        bpy.ops.object.modifier_apply(modifier="Boolean")
 
         # This makes the whole for cables to run in
         # cable_port = add_cylinder(self.cable_radius, self.h_base * 3, 100, 'cable_port')
@@ -4700,10 +4679,13 @@ class Chamber:
         outside_point = self.external_points[0]
 
         # This sets the port dimensions
-        window_width = 1.5  # cm
-        lick_window_width = .5  # cm
-        z_dims = [1.5, 2.3, 2.6]
-        z_extra = [1.9, 3.2]
+        window_width = 1.3  # cm, new 9/22/21
+        # window_width = 1.5  # cm original
+        lick_window_width = .7  # cm
+        z_dims = [1.6, 2.3, 2.7]  # new 9/22/21
+        z_extra = [2, 3.2]  # new 9/22/21
+        # z_dims = [1.5, 2.3, 2.6]  # Original
+        # z_extra = [1.9, 3.2]  # Original
         extended_back = 1
 
         LED_diameter = .55
@@ -4892,8 +4874,9 @@ class Chamber:
         ]
         [manipulate(obj_port, command) for command in commands]
 
-        select_verts(obj_port, [-lick_window_width / 2, lick_window_width / 2], [0, 0], [port_z[1], port_z[1]])
-        bevel(.3)
+        # This was the divot at the front, but we are getting rid of it
+        # select_verts(obj_port, [-lick_window_width / 2, lick_window_width / 2], [0, 0], [port_z[1], port_z[1]])
+        # bevel(.3)
 
         bpy.ops.mesh.select_all(action='SELECT')
         bpy.ops.mesh.remove_doubles()
@@ -5255,8 +5238,9 @@ class Chamber:
         bpy.ops.object.delete(use_global=False)
 
     def cut_screw_holes(self, obj_list):
-        port_screw_radius = .17
-        screw_cut = add_cylinder(port_screw_radius, self.thickness * 1.1, 32, 'screw_cut')
+        # port_screw_radius = .17  # First print used this
+        port_screw_radius = .38 / 2
+        screw_cut = add_cylinder(port_screw_radius, self.thickness * 1.2, 32, 'screw_cut')
         rotate(pi / 2, 'X')
         translate([0, self.thickness * 1.1 / 2, self.fastener_z])
         mode('EDIT')
@@ -5267,8 +5251,7 @@ class Chamber:
             bpy.ops.transform.rotate(value=i * self.angle_port, orient_axis='Z', center_override=self.center + [0])
             print(obj_list)
             [boolean_modifier(obj, screw_cut) for obj in obj_list]
-        activate([screw_cut])
-        bpy.ops.object.delete(use_global=False)
+        delete([screw_cut])
 
     def cam_attach(self):
         desired_depth = self.cam_attach_depth
@@ -5300,7 +5283,7 @@ class Chamber:
         bpy.context.object.modifiers["Screw"].screw_offset = pitch
         bpy.context.object.modifiers["Screw"].iterations = screw_revolutions
         bpy.context.object.modifiers["Screw"].use_normal_flip = True
-        bpy.ops.object.modifier_apply(apply_as='DATA', modifier="Screw")
+        bpy.ops.object.modifier_apply(modifier="Screw")
 
         select_verts(screw_cut, INF_POS, [0, 0], [-pitch / 2, pitch / 2])
         bpy.ops.mesh.edge_face_add()

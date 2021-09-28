@@ -22,8 +22,8 @@ from builds import *
 render_anatomy = False
 export = True
 build_mount = False
-build_mount2 = True
-build_chamber = False
+build_mount2 = False
+build_chamber = True
 shield = True
 
 # This is for the neuropixel head mount system
@@ -75,22 +75,22 @@ if build_chamber:
     place_cursor(overrider, [0, chamber.center[1], 0])
 
     # This builds the components
-    chamber.objects.append(chamber.frame())
-    chamber.objects.append(chamber.base())
-    obj_blank = chamber.port(blank=True)
+    # chamber.objects.append(chamber.frame())
+    # chamber.objects.append(chamber.base())
+    # obj_blank = chamber.port(blank=True)
     obj_port = chamber.port(blank=False)
-    chamber.objects.append(obj_blank)
-    chamber.objects.append(obj_port)
-    chamber.cut_screw_holes(chamber.objects)
-    # chamber.objects.append(chamber.cam_attach())
-    chamber.objects.append(chamber.cam_cover())
-    chamber.objects.append(chamber.cable_cover())
-
-    # This moves and duplicates the blank port
-    activate([obj_port])
-    bpy.ops.transform.rotate(value=chamber.angle_port, orient_axis='Z', center_override=chamber.center + [0])
-    bpy.ops.object.duplicate()
-    bpy.ops.transform.rotate(value=-2 * chamber.angle_port, orient_axis='Z', center_override=chamber.center + [0])
+    # chamber.objects.append(obj_blank)
+    # chamber.objects.append(obj_port)
+    # chamber.cut_screw_holes(chamber.objects)
+    # # chamber.objects.append(chamber.cam_attach())
+    # chamber.objects.append(chamber.cam_cover())
+    # chamber.objects.append(chamber.cable_cover())
+    #
+    # # This moves and duplicates the blank port
+    # activate([obj_port])
+    # bpy.ops.transform.rotate(value=chamber.angle_port, orient_axis='Z', center_override=chamber.center + [0])
+    # bpy.ops.object.duplicate()
+    # bpy.ops.transform.rotate(value=-2 * chamber.angle_port, orient_axis='Z', center_override=chamber.center + [0])
 
     # This exports the stl files
     if export:

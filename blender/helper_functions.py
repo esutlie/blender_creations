@@ -239,8 +239,11 @@ def extrude():
     bpy.ops.mesh.extrude_region()
 
 
-def resize(val):
-    bpy.ops.transform.resize(value=val)
+def resize(val, overrider=None):
+    if overrider:
+        bpy.ops.transform.resize(overrider, value=val)
+    else:
+        bpy.ops.transform.resize(value=val)
 
 
 def mode(val):
