@@ -5,6 +5,11 @@ import os
 from datetime import datetime
 
 
+def apply_all(obj):
+    activate([obj])
+    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+
+
 def facing_down(normal):
     return normal.dot(Vector((0.0, 0.0, 1.0))) > .9
 

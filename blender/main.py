@@ -22,19 +22,19 @@ from builds import *
 render_anatomy = False
 export = True
 build_mount = False
-build_mount2 = False
-build_chamber = True
+build_mount2 = True
+build_chamber = False
 shield = True
 
 # This is for the neuropixel head mount system
 if build_mount2:
     initialize_blender()
     mount = HeadMount2()
-    mount.pixel()
+    # mount.pixel()
     # mount.objects.append(mount.pixel())
-    mount.objects.append(mount.holder(shield=shield))
-    mount.objects.append(mount.cap(shield=shield))
-    mount.objects.append(mount.cover(shield=shield))
+    mount.objects.append(mount.holder(shield=shield, end_rotation=[0, 0, 0]))
+    # mount.objects.append(mount.cap(shield=shield))
+    # mount.objects.append(mount.cover(shield=shield))
     # mount.objects.append(mount.stopper())
     # mount.objects.append(mount.stabber())
     # mount.objects.append(mount.surgery())
@@ -53,9 +53,9 @@ if build_mount:
     mount = HeadMount()
     # mount.pixel()
     # mount.objects.append(mount.pixel())
-    # mount.objects.append(mount.holder())
-    mount.objects.append(mount.cap())
-    mount.objects.append(mount.cover())
+    mount.objects.append(mount.holder())
+    # mount.objects.append(mount.cap())
+    # mount.objects.append(mount.cover())
     # mount.objects.append(mount.stopper())
     # mount.objects.append(mount.stabber())
     # mount.objects.append(mount.surgery())
@@ -77,20 +77,20 @@ if build_chamber:
     # This builds the components
     # chamber.objects.append(chamber.frame())
     # chamber.objects.append(chamber.base())
-    # obj_blank = chamber.port(blank=True)
+    obj_blank = chamber.port(blank=True)
     obj_port = chamber.port(blank=False)
-    # chamber.objects.append(obj_blank)
-    # chamber.objects.append(obj_port)
-    # chamber.cut_screw_holes(chamber.objects)
+    chamber.objects.append(obj_blank)
+    chamber.objects.append(obj_port)
+    chamber.cut_screw_holes(chamber.objects)
     # # chamber.objects.append(chamber.cam_attach())
     # chamber.objects.append(chamber.cam_cover())
     # chamber.objects.append(chamber.cable_cover())
     #
-    # # This moves and duplicates the blank port
-    # activate([obj_port])
-    # bpy.ops.transform.rotate(value=chamber.angle_port, orient_axis='Z', center_override=chamber.center + [0])
-    # bpy.ops.object.duplicate()
-    # bpy.ops.transform.rotate(value=-2 * chamber.angle_port, orient_axis='Z', center_override=chamber.center + [0])
+    # This moves and duplicates the blank port
+    activate([obj_port])
+    bpy.ops.transform.rotate(value=chamber.angle_port, orient_axis='Z', center_override=chamber.center + [0])
+    bpy.ops.object.duplicate()
+    bpy.ops.transform.rotate(value=-2 * chamber.angle_port, orient_axis='Z', center_override=chamber.center + [0])
 
     # This exports the stl files
     if export:
