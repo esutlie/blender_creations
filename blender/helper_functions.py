@@ -14,11 +14,13 @@ def facing_down(normal):
     return normal.dot(Vector((0.0, 0.0, 1.0))) > .9
 
 
-def boolean_modifier(obj, cutter, modifier='DIFFERENCE'):
+def boolean_modifier(obj, cutter, modifier='DIFFERENCE', fast_solver=False):
     activate([obj])
     bpy.ops.object.modifier_add(type='BOOLEAN')
     bpy.context.object.modifiers["Boolean"].operation = modifier
     bpy.context.object.modifiers["Boolean"].object = cutter
+    if fast_solver:
+        bpy.context.object.modifiers["Boolean"].solver = 'FAST'
     bpy.ops.object.modifier_apply(modifier="Boolean")
 
 

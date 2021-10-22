@@ -18,19 +18,19 @@ INF_NEG = [0, -100]
 
 
 class HeadMount2:
-    def __init__(self):
+    def __init__(self, cap_clearance=.08, DOVE_OUTER_WIDTH=2.7, holder_screw_radius=1):
         self.objects = []
 
         # This: pixel settings
         self.PIXEL_TOP = [7, 1.6, 7]
         self.PIXEL_BOTTOM = [5, 1.5, 6]  # Increased from [4, 1.5, 6]
         self.PIXEL_PROBE = [.75, .024, 10]
-        self.PIXEL_PROBE_Y = .4
-        self.PIXEL_X_OFFSET = .2
+        self.PIXEL_PROBE_Y = .2  # Pretty sure this is the right number, hopefully the same across probes
+        self.PIXEL_X_OFFSET = .1  # works at least for the probe I'm using
         # self.DOVE_OUTER_WIDTH = 2.2
         # self.DOVE_DEPTH = .9
         # self.DOVE_ANGLE = 45
-        self.DOVE_OUTER_WIDTH = 2.7  # decreased from 2.8
+        self.DOVE_OUTER_WIDTH = 2.6  # 2.8, 2.78 are too large, 2.7 is too small
         self.DOVE_DEPTH = .75
         self.DOVE_ANGLE = 59 * pi / 180
         self.DOVE_INNER_WIDTH = self.DOVE_OUTER_WIDTH - 2 * self.DOVE_DEPTH / tan(self.DOVE_ANGLE)
@@ -47,8 +47,10 @@ class HeadMount2:
 
         # clearance for cap should .11
         # clearance for cover should be .15
-        self.cap_clearance = .15  # was .13
-        self.cover_clearance = .18  # was .16
+        self.cap_clearance = .08
+        # self.cap_clearance = .15  # was .13
+        # self.cover_clearance = .18  # was .16
+        self.cover_clearance = .11
 
         self.protrusion = 5
 
@@ -77,11 +79,12 @@ class HeadMount2:
         self.holder_y_extension = 1
         self.holder_wall_thickness = 1
         self.holder_inner_wall_thickness = .5
+        self.holder_screw_radius = self.SCREW_THREAD_RADIUS
 
         self.dove2_width = 2
         # self.dove2_width = 2.95
         self.dove2_depth = 1
-        self.dove2_clearance = .13  # should be .13
+        # self.dove2_clearance = self.cap_clearance  # should be .13
 
         holder_x = self.PIXEL_BOTTOM[0] + 2 * self.holder_wall_thickness + 2 * self.holder_clearance
         holder_y = self.holder_y_extension + self.PIXEL_BOTTOM[1] + self.DOVE_DEPTH + \
@@ -97,8 +100,10 @@ class HeadMount2:
 
         # cap settings
         self.cap_wall_thickness = .8
+        # self.cap_top_extention = 0
+        self.cap_top_extention = 1.5
         self.cap_size = list(map(lambda x: x + 2 * (self.cap_wall_thickness + self.cap_clearance), self.holder_size))
-        self.cap_size[2] = self.holder_xyz[2] + self.holder_size[2]
+        self.cap_size[2] = self.holder_xyz[2] + self.holder_size[2] + self.cap_top_extention
         self.cap_bottom_thickness = 1.5
         self.cap_bottom_lip = .7
         self.cap_window_width = 1
@@ -145,11 +150,12 @@ class HeadMount2:
                             self.cap_size[2] + self.cover_clearance
         self.cover_xyz = [0, self.holder_size[1] / 2 + self.cover_clearance + self.holder_xyz[1],
                           -self.cover_size[2] / 2 + self.cover_thickness + 2 * self.holder_size[2] +
-                          self.cover_clearance + self.holder_xyz[2]]
+                          self.cover_clearance + self.holder_xyz[2] + self.cap_top_extention]
 
         self.tracking_cylinder_radius = 2
         self.bevel_offset = 1
-        self.screwhead_top = .35
+        self.screwhead_top = .2  # was .35
+        self.extra_side_screw = 1
 
         # headfix paramaters
         self.bridge_thickness = 5
@@ -190,7 +196,7 @@ class HeadMount2:
         self.stand_ridge = .6
 
         self.eppendorf_height = 30
-        self.stand_cover_depth = 10
+        self.stand_cover_depth = 6
         self.stand_extra_lower_distance = 2.5  # should be tuned for how far the screw extends down
         self.stand_front = 3
         self.stand_size = [self.cover_size[0] + self.stand_thickness * 2,
@@ -253,32 +259,13 @@ class HeadMount2:
         translate(self.pixel_xyz)
         return pixel
 
-    def holder(self, shield=False, end_rotation=False):
+    def holder(self, shield=False, type='holder', name='holder'):
         # This makes the piece that permanently attaches to the pixel
         holder_location = [0, self.holder_size[1] / 2, self.holder_size[2] / 2]
-        holder = add_cube(self.holder_size, holder_location, 'holder')
+        holder = add_cube(self.holder_size, holder_location, name)
         for x in [[0, 100], [-100, 0]]:
             select_verts(holder, x, [self.holder_size[1], 100], [-100, 100])
             bpy.ops.mesh.bevel(offset=self.bevel_offset, segments=10)
-        bpy.ops.object.mode_set(mode='OBJECT')
-
-        # This makes the dovetail cutout
-        cutter_size = [self.PIXEL_BOTTOM[0] + 2 * self.holder_clearance, self.PIXEL_BOTTOM[1] + self.holder_y_extension,
-                       20]
-        dovetail = [self.DOVE_INNER_WIDTH, self.DOVE_DEPTH, 10]
-        xyz_location = [0, cutter_size[1] / 2 - .001,
-                        dovetail[2] / 2 + self.holder_space_below_dove - self.holder_clearance]
-        cutter = add_cube(cutter_size, xyz_location, 'cutter')
-        select_verts(cutter, [-100, 100], [0, 100], [-100, 100])
-        bpy.ops.mesh.extrude_region()
-        ratio = list(map(lambda x, y: x / y, dovetail, cutter_size))
-        bpy.ops.transform.resize(value=(ratio[0], 1, ratio[2]))
-        bpy.ops.mesh.extrude_context_move(TRANSFORM_OT_translate={"value": (0, dovetail[1], 0)})
-        bpy.ops.transform.resize(value=(self.DOVE_OUTER_WIDTH / self.DOVE_INNER_WIDTH, 1, 1))
-        for side in [1, -1]:
-            select_verts(cutter, [side * dovetail[0] / 2, 0], [0, 100], [-100, 100])
-            bpy.ops.mesh.bevel(offset=self.pixel_dove_bevel, segments=1)
-
         bpy.ops.object.mode_set(mode='OBJECT')
 
         # This makes the cap dovetail
@@ -292,79 +279,117 @@ class HeadMount2:
         boolean_modifier(holder, cap_dovetail)
         select_verts(holder, [-self.dove2_width / 2, self.dove2_width / 2], [self.holder_size[1], 100], [-100, 100])
         bpy.ops.mesh.bevel(offset=self.dove_bevel, segments=1)
-        mode(('OBJECT'))
-
-        # This makes the handle piece
-        # handle_size = [self.handle_width, self.handle_length, self.handle_thickness]
-        handle_location = [0, self.handle_size[1] / 2 + cutter_size[1] + dovetail[1] + .001,
-                           self.holder_size[2] - self.handle_size[2] / 2 - .001]
-        handle = add_cube(self.handle_size, (0, 0, 0), 'handle')
-        for side in [1, -1]:
-            select_verts(handle, [side * 100, 0], [0, 100], [-100, 100])
-            bpy.ops.mesh.bevel(offset=1.3, segments=1)
-
-        mode(('OBJECT'))
-        translate(handle_location)
-        boolean_modifier(holder, handle, modifier='UNION')
-
-        # # This makes the cutout for the securing hex nut
-        # bpy.ops.mesh.primitive_cylinder_add(radius=self.hex_radius, depth=handle_size[2] + .005, vertices=6,
-        #                                     location=handle_location, rotation=(0, 0, 0))
-        # hex_cut = bpy.context.active_object
-        # bpy.ops.transform.rotate(value=pi / 6, orient_axis='Z')
-
-        # This makes the cutout for the securing hex nut
-        hex_location = [0, 5 / 2 + cutter_size[1] + dovetail[1] + .001,
-                        self.holder_size[2] - self.handle_size[2] / 2 - .001]
-        # hex_location = [0, self.screw_y-self.holder_xyz[1],
-        #                 self.holder_size[2] - handle_size[2] / 2 - .001]
-        bpy.ops.mesh.primitive_cylinder_add(radius=self.hex_radius, depth=self.hex_depth, vertices=6,
-                                            location=hex_location)
-        hex_cut = bpy.context.active_object
-        bpy.ops.transform.rotate(value=pi / 6, orient_axis='Z')
-        select_verts(hex_cut, [-100, 100], [-100, -self.hex_radius], [-100, 100])
-        translate((-self.hex_radius, 0, 0))
-        mode('OBJECT')
-        bpy.ops.transform.rotate(value=pi, orient_axis='Z')
-        mode('OBJECT')
-
-        # This makes the cutout for the screw to come through
-        bpy.ops.mesh.primitive_cylinder_add(radius=self.SCREW_THREAD_RADIUS - .05, depth=self.SCREW_LENGTH,
-                                            location=hex_location)
-        screw_cut = bpy.context.active_object
-
-        # This applies boolean modifiers, deletes, and translates
-        boolean_modifier(holder, cutter)
-        # boolean_modifier(holder, hex_cut)
-        boolean_modifier(holder, screw_cut)
-
-        for obj in [cutter, handle, cap_dovetail, hex_cut, screw_cut]:
-            activate([obj])
-            bpy.ops.object.delete(use_global=False)
+        delete([cap_dovetail])
 
         activate([holder])
         select_verts(holder, [-ratio * dove2_size[0] / 2, ratio * dove2_size[0] / 2],
                      [self.holder_size[1] - dove2_size[1], 100], [-100, 0])
         bpy.ops.mesh.bevel(offset=self.base_bevel, segments=1)
+        mode('OBJECT')
+
+        if type == 'holder':
+            # This makes the dovetail cutout
+            cutter_size = [self.PIXEL_BOTTOM[0] + 2 * self.holder_clearance,
+                           self.PIXEL_BOTTOM[1] + self.holder_y_extension,
+                           20]
+            dovetail = [self.DOVE_INNER_WIDTH, self.DOVE_DEPTH, 10]
+            xyz_location = [0, cutter_size[1] / 2 - .001,
+                            dovetail[2] / 2 + self.holder_space_below_dove - self.holder_clearance]
+            cutter = add_cube(cutter_size, xyz_location, 'cutter')
+            select_verts(cutter, [-100, 100], [0, 100], [-100, 100])
+            bpy.ops.mesh.extrude_region()
+            ratio = list(map(lambda x, y: x / y, dovetail, cutter_size))
+            bpy.ops.transform.resize(value=(ratio[0], 1, ratio[2]))
+            bpy.ops.mesh.extrude_context_move(TRANSFORM_OT_translate={"value": (0, dovetail[1], 0)})
+            bpy.ops.transform.resize(value=(self.DOVE_OUTER_WIDTH / self.DOVE_INNER_WIDTH, 1, 1))
+            for side in [1, -1]:
+                select_verts(cutter, [side * dovetail[0] / 2, 0], [0, 100], [-100, 100])
+                bpy.ops.mesh.bevel(offset=self.pixel_dove_bevel, segments=1)
+            boolean_modifier(holder, cutter)
+            delete([cutter])
+
+            # This makes the handle piece
+            # handle_size = [self.handle_width, self.handle_length, self.handle_thickness]
+            handle_location = [0, self.handle_size[1] / 2 + cutter_size[1] + dovetail[1] + .001,
+                               self.holder_size[2] - self.handle_size[2] / 2 - .001]
+            handle = add_cube(self.handle_size, (0, 0, 0), 'handle')
+            for side in [1, -1]:
+                select_verts(handle, [side * 100, 0], [0, 100], [-100, 100])
+                bpy.ops.mesh.bevel(offset=1.3, segments=1)
+
+            mode(('OBJECT'))
+            translate(handle_location)
+            boolean_modifier(holder, handle, modifier='UNION')
+            delete([handle])
+
+            # This makes the cutout for the screw to come through
+            screw_location = [0, 5 / 2 + cutter_size[1] + dovetail[1] + .001,
+                              self.holder_size[2] - self.handle_size[2] / 2 - .001]
+            bpy.ops.mesh.primitive_cylinder_add(radius=self.holder_screw_radius, depth=self.SCREW_LENGTH,
+                                                location=screw_location)
+            screw_cut = bpy.context.active_object
+            boolean_modifier(holder, screw_cut)
+            delete([screw_cut])
+
+        elif type == 'surgery':
+            # This makes the needle cut pieces
+            cut_size = [self.holder_size[0] + 1, self.holder_xyz[1] * 2, self.holder_size[2] + 1]
+            cut_location = [0, 0, self.holder_size[2] / 2]
+            cut = add_cube(cut_size, cut_location, 'cut')
+            boolean_modifier(holder, cut, fast_solver=True)
+            delete([cut])
+
+            post_size = [self.post_diameter, self.post_diameter, self.holder_size[2] + 1]
+            post_location = [0, 0, self.holder_size[2] / 2]
+            post = add_cube(post_size, post_location, 'post')
+            bpy.ops.transform.rotate(value=pi / 4, orient_axis='Z')
+            bpy.ops.transform.translate(value=[self.surgery_post_separation / 2, -self.holder_xyz[1] + .001, 0])
+            boolean_modifier(holder, post)
+            activate([post])
+            bpy.ops.transform.translate(value=[-self.surgery_post_separation, 0, 0])
+            boolean_modifier(holder, post)
+            delete([post])
+
+            needle_size = [self.needle_diameter, self.needle_diameter, self.holder_size[2] + 1]
+            needle_location = [0, 0, self.holder_size[2] / 2]
+            needle = add_cube(needle_size, needle_location, 'needle')
+            bpy.ops.transform.rotate(value=pi / 4, orient_axis='Z')
+            bpy.ops.transform.translate(value=[self.PIXEL_X_OFFSET, -self.holder_xyz[1] + .001, 0])
+            boolean_modifier(holder, needle)
+            delete([needle])
+        if type == 'stopper':
+            # This makes the cutout for the securing hex nut
+            embed_depth = self.holder_size[2] / 2
+            bpy.ops.mesh.primitive_cylinder_add(radius=self.hex_radius, depth=self.hex_depth, vertices=6,
+                                                location=(0, 0, self.holder_size[2] - embed_depth))
+            hex_cut = bpy.context.active_object
+            bpy.ops.transform.rotate(value=pi / 6, orient_axis='Z')
+            hex_y = (self.holder_size[1] - self.dove2_depth) / 2
+            bpy.ops.transform.translate(value=(0, hex_y, 0))
+            select_verts(hex_cut, [-100, 100], [-100, -self.hex_radius], [-100, 100])
+            translate((-self.hex_radius, 0, 0))
+            boolean_modifier(holder, hex_cut)
+            delete([hex_cut])
+
+            # This makes the cutout for the screw to come through
+            loc = (0, hex_y, self.SCREW_LENGTH / 2 + self.holder_size[2] - embed_depth)
+            bpy.ops.mesh.primitive_cylinder_add(radius=self.SCREW_THREAD_RADIUS, depth=self.SCREW_LENGTH, location=loc)
+            screw_cut = bpy.context.active_object
+            boolean_modifier(holder, screw_cut)
+            delete([screw_cut])
 
         activate([holder])
         bpy.ops.transform.translate(value=self.holder_xyz)
-
-        if end_rotation:
-            activate([holder])
-            rotate(end_rotation[0], 'X')
-            rotate(end_rotation[1], 'Y')
-            rotate(end_rotation[2], 'Z')
 
         if shield:
             self.add_shield(holder, num_shield=2)
 
         return holder
 
-    def cap(self, shield=False):
+    def cap(self, shield=False, name='cap'):
         # This makes the head cap that is permanently cemented to the skull
         cap_location = [0, 0, self.cap_size[2] / 2]
-        cap = add_cube(self.cap_size, cap_location, 'cap')
+        cap = add_cube(self.cap_size, cap_location, name)
 
         # This bevels the back corners
         for side in [-1, 1]:
@@ -389,6 +414,8 @@ class HeadMount2:
 
         # This makes the mid section cutout
         hole_size = list(map(lambda x: x + 2 * self.cap_clearance, self.holder_size))
+        hole_size[2] += self.cap_top_extention
+
         hole_location = [0, 0, hole_size[2] / 2 + self.cap_size[2] - hole_size[2] + self.cap_clearance]
         hole = add_cube(hole_size, hole_location, 'hole')
         for x in [[0, 100], [-100, 0]]:
@@ -404,12 +431,15 @@ class HeadMount2:
         bpy.ops.mesh.primitive_cylinder_add(radius=self.lip_outer_radius, depth=self.lip_height,
                                             location=(self.PIXEL_X_OFFSET, 0, -self.lip_height / 2 + .001))
         outer_lip = bpy.context.active_object
+        oval_amount = .3
+        resize([1 + oval_amount * self.lip_inner_radius / self.lip_outer_radius, 1, 1])
         bpy.ops.mesh.primitive_cylinder_add(radius=self.lip_inner_radius, depth=15,
                                             location=(self.PIXEL_X_OFFSET, 0, 0))
         inner_lip = bpy.context.active_object
+        resize([1 + oval_amount, 1, 1])
 
         # This makes the cap dovetail
-        dove2_size = [self.dove2_width - 2 * self.dove2_clearance, self.dove2_depth - self.dove2_clearance,
+        dove2_size = [self.dove2_width - 2 * self.cap_clearance, self.dove2_depth - self.cap_clearance,
                       self.holder_size[2]]
         dove2_location = [0, self.holder_size[1] - dove2_size[1] / 2 + .001,
                           self.holder_size[2] / 2 - self.holder_wall_thickness]
@@ -421,7 +451,7 @@ class HeadMount2:
         bpy.ops.mesh.bevel(offset=self.dove_bevel, segments=1)
         select_verts(cap_dovetail, [-100, 100], [dove2_location[1], 100], [-100, 100])
         bpy.ops.mesh.extrude_context_move(TRANSFORM_OT_translate={"value": (0, self.cap_wall_thickness, 0)})
-        ratio = 1 - 2 * self.cap_wall_thickness / sqrt(3) / dove2_size[0]
+        ratio = 1 + 2 * self.cap_wall_thickness / sqrt(3) / dove2_size[0]
         bpy.ops.transform.resize(value=(ratio, 1, 1))
         select_verts(cap_dovetail, [-dove2_size[0] / 2, dove2_size[0] / 2], [0, dove2_location[1]], [-100, 100])
 
@@ -461,7 +491,7 @@ class HeadMount2:
 
         # This makes the cutaway for the back where the holder hex sinks in
         handle_size = [self.handle_size[0] + self.cap_clearance * 4, 2 * self.handle_size[1],
-                       self.handle_size[2] + self.cap_clearance * 2]
+                       self.handle_size[2] + self.cap_clearance * 2 + self.cap_top_extention]
         handle_location = [0, handle_size[1] / 2, self.cap_size[2] - handle_size[2] / 2 + self.cap_clearance]
         handle_cut = add_cube(handle_size, handle_location, 'handle_cut')
 
@@ -469,34 +499,6 @@ class HeadMount2:
         bpy.ops.mesh.primitive_cylinder_add(radius=self.SCREW_THREAD_RADIUS + .1, depth=self.SCREW_LENGTH,
                                             location=loc, rotation=(0, 0, 0))
         screw_cut = bpy.context.active_object
-
-        # # This adds a square spot for the ground to plug into
-        # plug_inner_size = [self.plug_width, self.plug_width, self.plug_depth]
-        # plug_outer_size = [plug_inner_size[0] + 2 * self.plug_wall, plug_inner_size[1] + 2 * self.plug_wall,
-        #                    plug_inner_size[2] + self.plug_wall]
-        # inner_plug = add_cube(plug_inner_size, (0, 0, 0), 'inner_plug')
-        # outer_plug = add_cube(plug_outer_size, (0, 0, 0), 'outer_plug')
-        # activate([inner_plug, outer_plug])
-        # plug_location = [self.wire_location[0], self.wire_location[1], self.cap_size[2] - plug_outer_size[2] / 2 + .01]
-        # translate(plug_location)
-        # activate([inner_plug])
-        # translate((0, 0, self.plug_wall / 2 + .01))
-        #
-        # boolean_modifier(cap, outer_plug, 'UNION')
-        # boolean_modifier(cap, inner_plug)
-
-        # # This cuts a line along the front for the ground wire to be glued into
-        # wire_size = [self.ground_wire_depth, self.ground_wire_depth, self.cap_size[2] * 2]
-        # wire = add_cube(wire_size, (0, 0, 0), 'wire')
-        # rotate(pi / 4, 'Z')
-        # translate(self.wire_location)
-        # boolean_modifier(cap, wire)
-
-        # This makes a model for the gold ground
-        # height = self.cap_size[2] + 2
-        # ground = add_cylinder(self.ground_cap_radius, height, 32, 'ground')
-        # translate(self.ground_pin_loc)
-        # translate([0, 0, height / 2 - 1])
 
         # This makes the cut out for the screws to secure the cover
         cover_screw = add_cylinder(self.SCREW_THREAD_RADIUS, self.cap_size[0] * 1.1, 100, 'cover_screw')
@@ -528,9 +530,15 @@ class HeadMount2:
 
         return cap
 
-    def cover(self, shield=False):
+    def cover(self, shield=False, name='cover'):
         # This makes the piece that holds the headstage and goes around the head cap
-        cover = add_cube(self.cover_size, [0, 0, 0], 'cover')
+        cover = add_cube(self.cover_size, [0, 0, 0], name)
+
+        # This adds thickness to the walls for the affixing screws so they don't go in to far
+        size = [self.cover_size[0] + 2 * self.extra_side_screw, 4, self.cover_size[2] - 1]
+        screw_thickness = add_cube(size, (0, self.hex_location[1] - self.cover_xyz[1], 0), 'screw_thickness')
+        boolean_modifier(cover, screw_thickness, modifier='UNION')
+        delete([screw_thickness])
 
         # This makes the midsection cutter
         midsection_size = [self.handle_size[0] + 2 * self.cover_clearance, self.cover_size[1], self.cover_size[2]]
@@ -569,12 +577,17 @@ class HeadMount2:
         r1_location = list(map(lambda x, y: x - y, self.cover_size, cut))
         r1_location[1] = 0
         r1_size = [self.cover_size[0], self.cover_size[1] + 1, self.cover_size[2]]
-        cut_away_r1 = add_cube(r1_size, r1_location, 'cut_away_r1')
-        select_verts(cut_away_r1, [-100, r1_location[0]], [-100, 100], [-100, r1_location[2]])
-        offset = (self.cap_size[0] - self.holder_size[0]) / 2 + .1
-        bpy.ops.mesh.bevel(offset=offset)
-        select_verts(cut_away_r1, [r1_location[0], 100], [-100, 100], [-100, r1_location[2]])
-        bpy.ops.mesh.bevel(offset=offset)
+        cut_away_r1 = add_cube(r1_size, (0, 0, 0), 'cut_away_r1')
+        translate(r1_location)
+        select_verts(cut_away_r1, INF, INF, INF_NEG)
+        extrude_move([0, 0, -self.cover_size[0] / 2])
+        resize([.01, 1, 1])
+
+        # select_verts(cut_away_r1, [-100, r1_location[0]], [-100, 100], [-100, r1_location[2]])
+        # offset = (self.cap_size[0] - self.holder_size[0]) / 2 + .1
+        # bpy.ops.mesh.bevel(offset=offset)
+        # select_verts(cut_away_r1, [r1_location[0], 100], [-100, 100], [-100, r1_location[2]])
+        # bpy.ops.mesh.bevel(offset=offset)
 
         boolean_modifier(cover, cut_away_r1)
         activate([cut_away_r1])
@@ -594,15 +607,18 @@ class HeadMount2:
 
         # This makes the headstage mount
         z_separation = 1
+        y_separation = 1
         mount_size = [self.holder_size[0] + self.cover_thickness * 2, self.cover_thickness, self.headstage_size[2]]
-        mount_location = [0, -self.cover_size[1] / 2 - mount_size[1] / 2 + self.cover_thickness,
+        mount_location = [0, -self.cover_size[1] / 2 - mount_size[1] / 2 + self.cover_thickness - y_separation,
                           self.cover_size[2] / 2 + mount_size[2] / 2 + z_separation - .001]
         mount = add_cube(mount_size, (0, 0, 0), 'mount')
         translate(mount_location)
         select_verts(mount, [-100, 100], [-100, 100], [-100, 0])
-        extrude_move((0, 0, -z_separation))
+        extrude_move((0, y_separation, -z_separation))
         resize((1, (self.cover_thickness + z_separation) / self.cover_thickness, 1))
         translate((0, z_separation / 2, 0))
+        select_verts(mount, INF, [-100, -mount_size[1] / 2 + y_separation], [-100, -mount_size[2] / 2 - z_separation])
+        translate([0, 0, -5])
         boolean_modifier(cover, mount, modifier='UNION')
         delete([mount])
 
@@ -627,10 +643,20 @@ class HeadMount2:
         activate([cover])
         bpy.ops.transform.translate(value=self.cover_xyz)
 
-        # This makes the pixel cutter
-        size = [self.PIXEL_TOP[0] + 2 * self.cover_clearance,
+        # This makes the back cutter
+        size = [self.PIXEL_TOP[0] - .7,
                 self.cover_clearance + self.PIXEL_TOP[1] + self.holder_y_extension + self.cap_clearance +
                 self.cap_wall_thickness + self.cover_clearance + self.cover_thickness,
+                self.cover_size[2]]
+        location = [0, -size[1] / 2 - self.PIXEL_PROBE_Y,
+                    self.cover_xyz[2] + self.cover_thickness + .02 + 1]
+        back_cutter = add_cube(size, location, 'pixel_cutter')
+        boolean_modifier(cover, back_cutter)
+        delete([back_cutter])
+
+        # This makes the pixel cutter
+        size = [self.PIXEL_TOP[0] + 2 * self.cover_clearance,
+                2 * self.cover_clearance + self.PIXEL_TOP[1],
                 self.cover_size[2]]
         location = [0, -size[1] / 2 + self.PIXEL_TOP[1] - self.PIXEL_PROBE_Y + self.cover_clearance,
                     self.cover_xyz[2] + self.cover_thickness + .02 + 1]
@@ -682,6 +708,14 @@ class HeadMount2:
         extrude_move((0, 5, 0))
         boolean_modifier(cover, screwhead_cut)
         delete([screwhead_cut])
+
+        # This adds a cutout for the pixel dovetail to come through
+        size = [self.DOVE_OUTER_WIDTH + .5, self.DOVE_DEPTH, 4]
+        loc = [0, self.PIXEL_BOTTOM[1] - self.PIXEL_PROBE_Y + size[1] / 2,
+               self.cover_xyz[2] + self.cover_size[2] / 2]
+        dove_space_cut = add_cube(size, loc, 'dove_space_cut')
+        boolean_modifier(cover, dove_space_cut)
+        delete([dove_space_cut])
 
         do_screw_test = False
         if do_screw_test:
@@ -1168,7 +1202,7 @@ class HeadMount2:
 
         return tube
 
-    def stand(self):
+    def stand(self, test=False):
         # This makes the stand
         stand = add_cube(self.stand_size, (0, self.cover_thickness / 2 - self.stand_front / 2, 0), 'stand')
 
@@ -1214,12 +1248,14 @@ class HeadMount2:
         # This moves the stand into position
         activate([stand])
         bpy.ops.transform.translate(value=self.cover_xyz)
+        translate([0, 0, -self.cap_top_extention])
         bpy.ops.transform.translate(
             value=[0, 0, -self.stand_size[2] / 2 - self.cover_size[2] / 2 + self.stand_cover_depth])
 
         # This makes the cut outs for the screws that afix the cover
         size = [self.stand_size[0] + 1, 5, self.stand_cover_depth + 1]
-        loc = [0, self.hex_location[1], self.cover_xyz[2] - self.cover_size[2] / 2 + size[2] / 2]
+        loc = [0, self.hex_location[1],
+               self.cover_xyz[2] - self.cover_size[2] / 2 + size[2] / 2 - self.cap_top_extention]
         screw_clear = add_cube(size, loc, 'screw_clear')
         boolean_modifier(stand, screw_clear)
 
@@ -1237,7 +1273,7 @@ class HeadMount2:
         boolean_modifier(stand, clean_cut)
 
         # This makes the cap dovetail
-        dove2_size = [self.dove2_width - 2 * self.dove2_clearance, self.dove2_depth - self.dove2_clearance,
+        dove2_size = [self.dove2_width - 2 * self.cap_clearance, self.dove2_depth - self.cap_clearance,
                       self.holder_size[2]]
         dove2_location = [0, self.holder_size[1] - dove2_size[1] / 2 + .001,
                           self.holder_size[2] / 2 - self.stand_extra_lower_distance]
@@ -1246,7 +1282,7 @@ class HeadMount2:
         select_verts(cap_dovetail, [-dove2_size[0] / 2, dove2_size[0] / 2], [0, dove2_location[1]], [-100, 100])
         ratio = 1 + 2 * dove2_size[1] / sqrt(3) / dove2_size[0]
         bpy.ops.transform.resize(value=(ratio, 1, 1))
-        bpy.ops.mesh.bevel(offset=.05, segments=1)
+        bpy.ops.mesh.bevel(offset=self.dove_bevel, segments=1)
         select_verts(cap_dovetail, [-100, 100], [dove2_location[1], 100], [-100, 100])
         bpy.ops.mesh.extrude_context_move(TRANSFORM_OT_translate={"value": (0, self.stand_clearance, 0)})
         ratio = 1 - 2 * self.stand_clearance / sqrt(3) / dove2_size[0]
@@ -1261,26 +1297,34 @@ class HeadMount2:
                        self.handle_size[
                            2] + self.stand_clearance * 2 + self.stand_cover_depth + self.stand_extra_lower_distance]
         handle_location = [0, handle_size[1] / 2,
-                           self.cap_size[2] - handle_size[2] / 2 + self.stand_clearance + self.stand_cover_depth]
+                           self.cap_size[2] - handle_size[
+                               2] / 2 + self.stand_clearance + self.stand_cover_depth - self.cap_top_extention]
         handle_cut = add_cube(handle_size, handle_location, 'handle_cut')
         boolean_modifier(stand, handle_cut)
 
         # This cuts out a spot for the screw to fit
-        loc = [0, self.screw_y, self.cover_size[2] / 2 + self.cover_move_z - self.SCREW_LENGTH / 2]
+        loc = [0, self.screw_y,
+               self.cover_size[2] / 2 + self.cover_move_z - self.SCREW_LENGTH / 2 - self.cap_top_extention]
         bpy.ops.mesh.primitive_cylinder_add(radius=self.SCREW_THREAD_RADIUS + .1, depth=self.SCREW_LENGTH,
                                             location=loc, rotation=(0, 0, 0))
         screw_cut = bpy.context.active_object
         boolean_modifier(stand, screw_cut)
 
-        delete([hole, clear, base, clean_cut, handle_cut, cap_dovetail, screw_cut, screw_clear])
+        delete([hole, clear, base, clean_cut, handle_cut, cap_dovetail, screw_clear, screw_cut])
 
-        stand_test_size = [self.stand_size[0] + 1, self.stand_size[1] + 1, self.stand_size[2] + 1]
-        stand_test = add_cube(stand_test_size, (0, self.cover_thickness / 2 - self.stand_front / 2, 0),
-                              'stand_test')
-        translate((self.cover_xyz[0], self.cover_xyz[1], stand_test_size[2] / 2 - self.stand_extra_lower_distance - 3))
-        boolean_modifier(stand_test, stand, 'INTERSECT')
+        activate([stand])
+        # translate([0, 0, self.cap_top_extention])
 
-        return stand
+        if test:
+            stand_test_size = [self.stand_size[0] + 1, self.stand_size[1] + 1, self.stand_size[2] + 1]
+            stand_test = add_cube(stand_test_size, (0, self.cover_thickness / 2 - self.stand_front / 2, 0),
+                                  'stand_test')
+            translate(
+                (self.cover_xyz[0], self.cover_xyz[1], stand_test_size[2] / 2 - self.stand_extra_lower_distance - 3))
+            boolean_modifier(stand_test, stand, 'INTERSECT')
+            return stand_test
+        else:
+            return stand
 
     def cleaner(self):
         # This makes the piece that holds the eppendorf tube and mates with the stand

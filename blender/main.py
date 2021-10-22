@@ -24,7 +24,7 @@ export = True
 build_mount = False
 build_mount2 = True
 build_chamber = False
-shield = True
+shield = False
 
 # This is for the neuropixel head mount system
 if build_mount2:
@@ -32,16 +32,27 @@ if build_mount2:
     mount = HeadMount2()
     # mount.pixel()
     # mount.objects.append(mount.pixel())
-    mount.objects.append(mount.holder(shield=shield, end_rotation=[0, 0, 0]))
-    # mount.objects.append(mount.cap(shield=shield))
+    # mount.objects.append(mount.holder(shield=shield, type='holder'))
+    mount.objects.append(mount.cap(shield=shield))
     # mount.objects.append(mount.cover(shield=shield))
-    # mount.objects.append(mount.stopper())
-    # mount.objects.append(mount.stabber())
-    # mount.objects.append(mount.surgery())
+    # mount.objects.append(mount.holder(shield=shield, type='surgery'))
+    # mount.objects.append(mount.holder(shield=shield, type='stopper'))
+
     # mount.objects.append(mount.tube())
     # mount.objects.append(mount.stand())
+    mount.objects.append(mount.stand(test=True))
     # mount.objects.append(mount.cleaner())
     # mount.objects.append(mount.headfix())
+
+    # for clear in [.08, .09, .1, .11, .12]:
+    #     mount1 = HeadMount2(cap_clearance=clear)
+    #     mount.objects.append(mount1.cover(shield=shield, name='cover' + str(clear)))
+    #     mount.objects.append(mount1.cap(shield=shield, name='cap' + str(clear)))
+    #
+    # for radius, dove_x in zip([.96, .98, .99, 1, 1.01, 1.02], [2.55, 2.58, 2.61, 2.64, 2.67, 2.7]):
+    #     mount1 = HeadMount2(DOVE_OUTER_WIDTH=dove_x, holder_screw_radius=radius)
+    #     mount.objects.append(
+    #         mount1.holder(shield=shield, type='holder', name='holder' + str(radius) + ',' + str(dove_x)))
 
     # This exports the stl files
     if export:
@@ -53,7 +64,7 @@ if build_mount:
     mount = HeadMount()
     # mount.pixel()
     # mount.objects.append(mount.pixel())
-    mount.objects.append(mount.holder())
+    # mount.objects.append(mount.holder())
     # mount.objects.append(mount.cap())
     # mount.objects.append(mount.cover())
     # mount.objects.append(mount.stopper())
