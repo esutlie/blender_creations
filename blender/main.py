@@ -33,14 +33,14 @@ if build_mount2:
     # mount.pixel()
     # mount.objects.append(mount.pixel())
     # mount.objects.append(mount.holder(shield=shield, type='holder'))
-    mount.objects.append(mount.cap(shield=shield))
-    # mount.objects.append(mount.cover(shield=shield))
+    # mount.objects.append(mount.cap(shield=shield))
+    mount.objects.append(mount.cover(shield=shield))
     # mount.objects.append(mount.holder(shield=shield, type='surgery'))
     # mount.objects.append(mount.holder(shield=shield, type='stopper'))
 
     # mount.objects.append(mount.tube())
     # mount.objects.append(mount.stand())
-    mount.objects.append(mount.stand(test=True))
+    # mount.objects.append(mount.stand(test=True))
     # mount.objects.append(mount.cleaner())
     # mount.objects.append(mount.headfix())
 

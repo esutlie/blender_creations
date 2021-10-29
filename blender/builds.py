@@ -50,9 +50,10 @@ class HeadMount2:
         self.cap_clearance = .08
         # self.cap_clearance = .15  # was .13
         # self.cover_clearance = .18  # was .16
-        self.cover_clearance = .11
+        self.cover_clearance = .08
 
         self.protrusion = 5
+        self.hex_radius = 2.4
 
         self.lip_height = 1
         self.lip_outer_radius = .9
@@ -95,7 +96,7 @@ class HeadMount2:
         self.holder_xyz = [0, -self.PIXEL_PROBE_Y - self.holder_y_extension,
                            self.pixel_xyz[2] + self.DOVE_Z_SPACER - self.holder_space_below_dove]
 
-        self.handle_size = [self.SCREW_THREAD_RADIUS * 2 + self.holder_wall_thickness * 2, 4.5, 2]
+        self.handle_size = [self.hex_radius * 2 + .5, 4.5, 3]
         # self.handle_size = [5.9, 4.5, 3]  #old params with hex
 
         # cap settings
@@ -134,8 +135,8 @@ class HeadMount2:
         self.flex_space = 2
         self.cover_midsection_x = 5
 
-        self.hex_radius = 2.4
         self.hex_location = [0, self.holder_size[1] / 2 + self.holder_xyz[1], self.cap_size[2] - self.hex_radius]
+        self.hex_cut_depth = 1.7
         self.screw_divot_depth = .5
         self.screw_divot_radius = 1.1
         self.base_bevel = .5
@@ -150,12 +151,13 @@ class HeadMount2:
                             self.cap_size[2] + self.cover_clearance
         self.cover_xyz = [0, self.holder_size[1] / 2 + self.cover_clearance + self.holder_xyz[1],
                           -self.cover_size[2] / 2 + self.cover_thickness + 2 * self.holder_size[2] +
-                          self.cover_clearance + self.holder_xyz[2] + self.cap_top_extention]
+                          self.holder_xyz[2] + self.cap_top_extention]
+                          # self.cover_clearance + self.holder_xyz[2] + self.cap_top_extention]
 
         self.tracking_cylinder_radius = 2
         self.bevel_offset = 1
-        self.screwhead_top = .2  # was .35
-        self.extra_side_screw = 1
+        self.screwhead_top = .15  # was .35
+        self.extra_side_screw = .8
 
         # headfix paramaters
         self.bridge_thickness = 5
@@ -202,7 +204,7 @@ class HeadMount2:
         self.stand_size = [self.cover_size[0] + self.stand_thickness * 2,
                            self.cover_size[1] + self.stand_thickness * 2 + self.cover_thickness + self.stand_front,
                            self.eppendorf_height + self.stand_cover_depth + self.stand_extra_lower_distance + 10]
-        self.stand_clearance = .3
+        self.stand_clearance = .2
         self.cleaner_clearance = .35
         self.base_width = 30
         self.base_thickness = 3
@@ -262,7 +264,7 @@ class HeadMount2:
     def holder(self, shield=False, type='holder', name='holder'):
         # This makes the piece that permanently attaches to the pixel
         holder_location = [0, self.holder_size[1] / 2, self.holder_size[2] / 2]
-        holder = add_cube(self.holder_size, holder_location, name)
+        holder = add_cube(self.holder_size, holder_location, type)
         for x in [[0, 100], [-100, 0]]:
             select_verts(holder, x, [self.holder_size[1], 100], [-100, 100])
             bpy.ops.mesh.bevel(offset=self.bevel_offset, segments=10)
@@ -321,6 +323,21 @@ class HeadMount2:
             translate(handle_location)
             boolean_modifier(holder, handle, modifier='UNION')
             delete([handle])
+
+            # This makes the cutout for the hex
+            hex_location = [0, 5 / 2 + cutter_size[1] + dovetail[1] + .001,
+                            self.holder_size[2] - self.handle_size[2] / 2 - .001]
+            # hex_location = [0, self.screw_y-self.holder_xyz[1],
+            #                 self.holder_size[2] - handle_size[2] / 2 - .001]
+            hex_cut = add_cylinder(self.hex_radius, self.hex_cut_depth, 6, 'hex_cut')
+            translate(hex_location)
+            rotate(pi / 6, 'Z')
+            select_verts(hex_cut, INF, [-100, -self.hex_radius], INF)
+            translate((-self.hex_radius, 0, 0))
+            mode('OBJECT')
+            rotate(pi, 'Z')
+            boolean_modifier(holder, hex_cut)
+            delete([hex_cut])
 
             # This makes the cutout for the screw to come through
             screw_location = [0, 5 / 2 + cutter_size[1] + dovetail[1] + .001,
@@ -500,10 +517,17 @@ class HeadMount2:
                                             location=loc, rotation=(0, 0, 0))
         screw_cut = bpy.context.active_object
 
+        # # This makes the cut out for the screws to secure the cover
+        # cover_screw = add_cylinder(self.SCREW_THREAD_RADIUS, self.cap_size[0] * 1.1, 100, 'cover_screw')
+        # rotate(pi / 2, 'Y')
+        # translate(self.hex_location)
+
         # This makes the cut out for the screws to secure the cover
-        cover_screw = add_cylinder(self.SCREW_THREAD_RADIUS, self.cap_size[0] * 1.1, 100, 'cover_screw')
-        rotate(pi / 2, 'Y')
-        translate(self.hex_location)
+        depth = self.cover_size[0] + self.hex_depth * 2
+        bpy.ops.mesh.primitive_cylinder_add(radius=self.SCREW_THREAD_RADIUS,  # * 1.3,
+                                            depth=depth,
+                                            location=self.hex_location, rotation=(0, pi / 2, 0))
+        hex_screw = bpy.context.active_object
 
         # This applies boolean modifiers, deletes, and translates
         boolean_modifier(cap, head_fix, modifier='UNION')
@@ -520,9 +544,13 @@ class HeadMount2:
         boolean_modifier(cap, handle_cut)
         boolean_modifier(cap, screw_cut)
         # boolean_modifier(cap, ground)
-        boolean_modifier(cap, cover_screw)
+        offset = self.cap_size[1] / 6
+        for side in [1, -2]:
+            activate([hex_screw])
+            translate([side * depth / 2, side * offset, 0])
+            boolean_modifier(cap, hex_screw)
 
-        delete([head_fix, hole, clear, outer_lip, inner_lip, screw_cut, cover_screw,
+        delete([head_fix, hole, clear, outer_lip, inner_lip, screw_cut, hex_screw,
                 cap_dovetail, window, divot_cut1, divot_cut2, handle_cut])
 
         if shield:
@@ -535,9 +563,14 @@ class HeadMount2:
         cover = add_cube(self.cover_size, [0, 0, 0], name)
 
         # This adds thickness to the walls for the affixing screws so they don't go in to far
-        size = [self.cover_size[0] + 2 * self.extra_side_screw, 4, self.cover_size[2] - 1]
+        depth = self.cover_size[0] / 2 + self.extra_side_screw
+        size = [depth, 4, self.cover_size[2] - 1]
         screw_thickness = add_cube(size, (0, self.hex_location[1] - self.cover_xyz[1], 0), 'screw_thickness')
-        boolean_modifier(cover, screw_thickness, modifier='UNION')
+        offset = self.cap_size[1] / 6
+        for side in [1, -2]:
+            activate([screw_thickness])
+            translate([side * depth / 2, side * offset, 0])
+            boolean_modifier(cover, screw_thickness, modifier='UNION')
         delete([screw_thickness])
 
         # This makes the midsection cutter
@@ -666,11 +699,16 @@ class HeadMount2:
         front_section_y = self.cover_size[1] / 2 + self.cover_xyz[1] - (size[1] / 2 + location[1])
 
         # This makes the cut out for the screws to secure the cover
+        depth = self.cover_size[0] + self.hex_depth * 2
         bpy.ops.mesh.primitive_cylinder_add(radius=self.SCREW_THREAD_RADIUS,  # * 1.3,
-                                            depth=self.cover_size[0] + self.hex_depth * 2,
+                                            depth=depth,
                                             location=self.hex_location, rotation=(0, pi / 2, 0))
         hex_screw = bpy.context.active_object
-        boolean_modifier(cover, hex_screw)
+        offset = self.cap_size[1] / 6
+        for side in [1, -2]:
+            activate([hex_screw])
+            translate([side * depth / 2, side * offset, 0])
+            boolean_modifier(cover, hex_screw)
         delete([hex_screw])
 
         # This adds the cover for the screw
@@ -704,7 +742,7 @@ class HeadMount2:
         bpy.ops.mesh.extrude_context_move(TRANSFORM_OT_translate={"value": (0, 0, -5)})
         select_verts(screwhead_cut, [-100, 100], [-100, 100], [100, 0])
         bpy.ops.mesh.extrude_context_move(TRANSFORM_OT_translate={"value": (0, 0, self.screwhead_top)})
-        select_verts(screwhead_cut, [-100, 100], [0, 100], [-100, 100])
+        select_verts(screwhead_cut, [-100, 100], [self.SCREWHEAD_UPPER_RADIUS * .2, 100], [-100, 100])
         extrude_move((0, 5, 0))
         boolean_modifier(cover, screwhead_cut)
         delete([screwhead_cut])
@@ -1253,11 +1291,16 @@ class HeadMount2:
             value=[0, 0, -self.stand_size[2] / 2 - self.cover_size[2] / 2 + self.stand_cover_depth])
 
         # This makes the cut outs for the screws that afix the cover
-        size = [self.stand_size[0] + 1, 5, self.stand_cover_depth + 1]
+        depth = self.stand_size[0] + 1
+        size = [depth, 5, self.stand_cover_depth + 1]
         loc = [0, self.hex_location[1],
                self.cover_xyz[2] - self.cover_size[2] / 2 + size[2] / 2 - self.cap_top_extention]
         screw_clear = add_cube(size, loc, 'screw_clear')
-        boolean_modifier(stand, screw_clear)
+        offset = self.cap_size[1] / 6
+        for side in [1, -2]:
+            activate([screw_clear])
+            translate([side * depth / 2, side * offset, 0])
+            boolean_modifier(stand, screw_clear)
 
         # This makes the cut out for the cleaner piece
         size = [self.cover_size[0] - 2 * self.stand_ridge + 2 * self.inset, self.stand_size[1],
@@ -1273,8 +1316,8 @@ class HeadMount2:
         boolean_modifier(stand, clean_cut)
 
         # This makes the cap dovetail
-        dove2_size = [self.dove2_width - 2 * self.cap_clearance, self.dove2_depth - self.cap_clearance,
-                      self.holder_size[2]]
+        clearance = self.cap_clearance - .02
+        dove2_size = [self.dove2_width - 2 * clearance, self.dove2_depth - clearance, self.holder_size[2]]
         dove2_location = [0, self.holder_size[1] - dove2_size[1] / 2 + .001,
                           self.holder_size[2] / 2 - self.stand_extra_lower_distance]
         dove2_location = [x + y for x, y in zip(dove2_location, self.holder_xyz)]
