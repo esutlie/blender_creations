@@ -152,7 +152,7 @@ class HeadMount2:
         self.cover_xyz = [0, self.holder_size[1] / 2 + self.cover_clearance + self.holder_xyz[1],
                           -self.cover_size[2] / 2 + self.cover_thickness + 2 * self.holder_size[2] +
                           self.holder_xyz[2] + self.cap_top_extention]
-                          # self.cover_clearance + self.holder_xyz[2] + self.cap_top_extention]
+        # self.cover_clearance + self.holder_xyz[2] + self.cap_top_extention]
 
         self.tracking_cylinder_radius = 2
         self.bevel_offset = 1
@@ -189,6 +189,7 @@ class HeadMount2:
                                      self.cap_size[2] + self.cover_clearance + self.cover_clearance]
 
         self.surgery_post_separation = 4
+        self.grinder_post_separation = 4.4
         self.post_diameter = .82  # 21 gauge
         self.needle_diameter = .45  # 26 gauge
 
@@ -278,18 +279,21 @@ class HeadMount2:
         select_verts(cap_dovetail, [-dove2_size[0] / 2, dove2_size[0] / 2], [0, dove2_location[1]], [-100, 100])
         ratio = 1 + 2 * dove2_size[1] / sqrt(3) / dove2_size[0]
         bpy.ops.transform.resize(value=(ratio, 1, 1))
+        if type == 'grinder':
+            mode('OBJECT')
+            translate([0, 0, -3])
+
         boolean_modifier(holder, cap_dovetail)
         select_verts(holder, [-self.dove2_width / 2, self.dove2_width / 2], [self.holder_size[1], 100], [-100, 100])
         bpy.ops.mesh.bevel(offset=self.dove_bevel, segments=1)
         delete([cap_dovetail])
-
         activate([holder])
         select_verts(holder, [-ratio * dove2_size[0] / 2, ratio * dove2_size[0] / 2],
                      [self.holder_size[1] - dove2_size[1], 100], [-100, 0])
         bpy.ops.mesh.bevel(offset=self.base_bevel, segments=1)
         mode('OBJECT')
 
-        if type == 'holder':
+        if type == 'holder' or type == 'grinder':
             # This makes the dovetail cutout
             cutter_size = [self.PIXEL_BOTTOM[0] + 2 * self.holder_clearance,
                            self.PIXEL_BOTTOM[1] + self.holder_y_extension,
@@ -310,43 +314,44 @@ class HeadMount2:
             boolean_modifier(holder, cutter)
             delete([cutter])
 
-            # This makes the handle piece
-            # handle_size = [self.handle_width, self.handle_length, self.handle_thickness]
-            handle_location = [0, self.handle_size[1] / 2 + cutter_size[1] + dovetail[1] + .001,
-                               self.holder_size[2] - self.handle_size[2] / 2 - .001]
-            handle = add_cube(self.handle_size, (0, 0, 0), 'handle')
-            for side in [1, -1]:
-                select_verts(handle, [side * 100, 0], [0, 100], [-100, 100])
-                bpy.ops.mesh.bevel(offset=1.3, segments=1)
+            if type != 'grinder':
+                # This makes the handle piece
+                # handle_size = [self.handle_width, self.handle_length, self.handle_thickness]
+                handle_location = [0, self.handle_size[1] / 2 + cutter_size[1] + dovetail[1] + .001,
+                                   self.holder_size[2] - self.handle_size[2] / 2 - .001]
+                handle = add_cube(self.handle_size, (0, 0, 0), 'handle')
+                for side in [1, -1]:
+                    select_verts(handle, [side * 100, 0], [0, 100], [-100, 100])
+                    bpy.ops.mesh.bevel(offset=1.3, segments=1)
 
-            mode(('OBJECT'))
-            translate(handle_location)
-            boolean_modifier(holder, handle, modifier='UNION')
-            delete([handle])
+                mode(('OBJECT'))
+                translate(handle_location)
+                boolean_modifier(holder, handle, modifier='UNION')
+                delete([handle])
 
-            # This makes the cutout for the hex
-            hex_location = [0, 5 / 2 + cutter_size[1] + dovetail[1] + .001,
-                            self.holder_size[2] - self.handle_size[2] / 2 - .001]
-            # hex_location = [0, self.screw_y-self.holder_xyz[1],
-            #                 self.holder_size[2] - handle_size[2] / 2 - .001]
-            hex_cut = add_cylinder(self.hex_radius, self.hex_cut_depth, 6, 'hex_cut')
-            translate(hex_location)
-            rotate(pi / 6, 'Z')
-            select_verts(hex_cut, INF, [-100, -self.hex_radius], INF)
-            translate((-self.hex_radius, 0, 0))
-            mode('OBJECT')
-            rotate(pi, 'Z')
-            boolean_modifier(holder, hex_cut)
-            delete([hex_cut])
+                # This makes the cutout for the hex
+                hex_location = [0, 5 / 2 + cutter_size[1] + dovetail[1] + .001,
+                                self.holder_size[2] - self.handle_size[2] / 2 - .001]
+                # hex_location = [0, self.screw_y-self.holder_xyz[1],
+                #                 self.holder_size[2] - handle_size[2] / 2 - .001]
+                hex_cut = add_cylinder(self.hex_radius, self.hex_cut_depth, 6, 'hex_cut')
+                translate(hex_location)
+                rotate(pi / 6, 'Z')
+                select_verts(hex_cut, INF, [-100, -self.hex_radius], INF)
+                translate((-self.hex_radius, 0, 0))
+                mode('OBJECT')
+                rotate(pi, 'Z')
+                boolean_modifier(holder, hex_cut)
+                delete([hex_cut])
 
-            # This makes the cutout for the screw to come through
-            screw_location = [0, 5 / 2 + cutter_size[1] + dovetail[1] + .001,
-                              self.holder_size[2] - self.handle_size[2] / 2 - .001]
-            bpy.ops.mesh.primitive_cylinder_add(radius=self.holder_screw_radius, depth=self.SCREW_LENGTH,
-                                                location=screw_location)
-            screw_cut = bpy.context.active_object
-            boolean_modifier(holder, screw_cut)
-            delete([screw_cut])
+                # This makes the cutout for the screw to come through
+                screw_location = [0, 5 / 2 + cutter_size[1] + dovetail[1] + .001,
+                                  self.holder_size[2] - self.handle_size[2] / 2 - .001]
+                bpy.ops.mesh.primitive_cylinder_add(radius=self.holder_screw_radius, depth=self.SCREW_LENGTH,
+                                                    location=screw_location)
+                screw_cut = bpy.context.active_object
+                boolean_modifier(holder, screw_cut)
+                delete([screw_cut])
 
         elif type == 'surgery':
             # This makes the needle cut pieces
@@ -394,6 +399,18 @@ class HeadMount2:
             screw_cut = bpy.context.active_object
             boolean_modifier(holder, screw_cut)
             delete([screw_cut])
+
+        if type == 'grinder':
+            post_size = [self.post_diameter, self.post_diameter, self.holder_size[2] + 1]
+            post_location = [0, 0, self.holder_size[2] / 2]
+            post = add_cube(post_size, post_location, 'post')
+            bpy.ops.transform.rotate(value=pi / 4, orient_axis='Z')
+            bpy.ops.transform.translate(value=[self.grinder_post_separation / 2, self.holder_size[1] + .001, 0])
+            boolean_modifier(holder, post)
+            activate([post])
+            bpy.ops.transform.translate(value=[-self.grinder_post_separation, 0, 0])
+            boolean_modifier(holder, post)
+            delete([post])
 
         activate([holder])
         bpy.ops.transform.translate(value=self.holder_xyz)
@@ -1042,7 +1059,7 @@ class HeadMount2:
     def tube(self, play=False):
         radius = 18
         length = 100
-        thickness = 2
+        thickness = 3.5
         ceiling_thickness = 2
         base_thickness = 2
         vertices = 100
@@ -1057,7 +1074,8 @@ class HeadMount2:
         headfix_internal_x_angle = 10 / 180 * pi
 
         # This makes the tube
-        tube = add_cylinder(radius + thickness, length, vertices, 'tube')
+        name = 'play' if play else 'tube'
+        tube = add_cylinder(radius + thickness, length, vertices, name)
         tube_cut = add_cylinder(radius + thickness, length, vertices, 'tube_cut')
         activate([tube, tube_cut])
         rotate(pi / 2, 'X')
@@ -1120,15 +1138,18 @@ class HeadMount2:
         # This moves the tube to position
         activate([tube, tube_cut])
         translate((0, -length / 2 + front_distance, radius - ceiling + (length - front_distance) * tan(top_angle)))
-        translate((0, 0, self.head_fix_dims[2] + self.headfix_bar_z))
+        translate((0, 0, self.head_fix_size[2] + self.headfix_bar_z))
 
-        if not play:
+        if play:
+            delete([tube_cut, slit])
+            return tube
+        else:
             # This cuts out the headfix piece
-            headfix_cut_size = [self.cap_size[0] + 2 * (self.head_fix_dims[0] + self.headfix_clearance),
-                                self.head_fix_dims[1] + self.headfix_clearance + .02,
-                                self.head_fix_dims[2] + 1.8 * self.headfix_clearance]
+            headfix_cut_size = [self.head_fix_size[0] + 2 * self.headfix_clearance,
+                                self.head_fix_size[1] + self.headfix_clearance + .02,
+                                self.head_fix_size[2] + 1.8 * self.headfix_clearance]
             headfix_cut_location = [0, self.holder_size[1] / 2 + self.holder_xyz[1] + self.headfix_clearance / 2,
-                                    self.head_fix_dims[2] / 2 + self.headfix_bar_z]
+                                    self.head_fix_size[2] / 2 + self.headfix_bar_z]
             headfix_cut = add_cube(headfix_cut_size, [0, 0, 0], 'headfix_cut')
             translate(headfix_cut_location)
             select_verts(headfix_cut, INF, INF_NEG, INF)
@@ -1180,19 +1201,19 @@ class HeadMount2:
 
             # this cuts out the hex and screw holes
             headfix_translate = (0, self.holder_size[1] / 2 + self.holder_xyz[1],
-                                 (self.head_fix_dims[
-                                      2] + 2 * self.headfix_thickness) / 2 - self.headfix_thickness + self.headfix_bar_z)
+                                 (self.head_fix_size[2] + 2 * self.headfix_thickness) / 2
+                                 - self.headfix_thickness + self.headfix_bar_z)
             for side in [1, -1]:
                 distance = 2.3
-                hex_location = [side * (self.cap_size[0] / 2 + self.head_fix_dims[0] + distance),
-                                -self.head_fix_dims[1] / 2 - distance + self.headfix_clearance,
-                                self.head_fix_dims[2] / 2 + distance]
+                hex_location = [side * (self.head_fix_size[0] / 2 + distance),
+                                -self.head_fix_size[1] / 2 - distance + self.headfix_clearance,
+                                self.head_fix_size[2] / 2 + distance]
                 hex_cut = add_cylinder(self.hex_radius, self.hex_depth, 6, 'hex_cut')
                 mode('OBJECT')
                 screw_cut = add_cylinder(self.headfix_screw_radius, distance * 5, 32, 'screw_cut')
                 activate([hex_cut, screw_cut])
                 rotate(pi / 6, 'Z')
-                bpy.ops.transform.rotate(value=pi / 4, orient_axis='Y',
+                bpy.ops.transform.rotate(value=-pi / 4, orient_axis='Y',
                                          orient_matrix=(
                                              (side * 1.0, -1.0, 0.0), (1.0, side * 1.0, 0.0), (0.0, 0.0, 1.0)))
                 bpy.ops.transform.translate(value=hex_location)
@@ -1233,12 +1254,12 @@ class HeadMount2:
                 # This deletes the cutters
                 delete([hex_cut, screw_cut, click_hole, click_holder, click_holder_cut])
 
-            # This cuts out a faster print
-            trim = add_cube([3 * radius, 60, radius], (0, 0, 0), 'trim')
-            translate((0, -12, 7))
-            boolean_modifier(trim, tube, 'INTERSECT')
+            # # This cuts out a faster print
+            # trim = add_cube([3 * radius, 60, radius], (0, 0, 0), 'trim')
+            # translate((0, -12, 7))
+            # boolean_modifier(trim, tube, 'INTERSECT')
 
-        return tube
+            return [tube, backer]
 
     def stand(self, test=False):
         # This makes the stand
@@ -1353,7 +1374,26 @@ class HeadMount2:
         screw_cut = bpy.context.active_object
         boolean_modifier(stand, screw_cut)
 
-        delete([hole, clear, base, clean_cut, handle_cut, cap_dovetail, screw_clear, screw_cut])
+        # This adds guides for the holder
+        thickness = self.cap_wall_thickness
+        guide_size = [self.stand_size[0] - .1, thickness, self.cap_size[2] - self.cap_top_extention]
+        loc = [0, -thickness / 2 - self.holder_y_extension - self.PIXEL_PROBE_Y - self.cap_clearance, guide_size[2] / 2]
+        guide = add_cube(guide_size, [0, 0, 0], 'guide')
+        translate(loc)
+        center_cut_size = [self.holder_size[0] - self.holder_wall_thickness * 2, thickness + 1, self.cap_size[2] + 1]
+        center_cut = add_cube(center_cut_size, loc, 'center_cut')
+        boolean_modifier(guide, center_cut)
+        select_verts(guide, [-center_cut_size[0] / 2, center_cut_size[0] / 2], INF, INF_NEG)
+        bevel(self.holder_wall_thickness + self.cap_wall_thickness + self.cover_thickness)
+        activate([center_cut])
+        translate([center_cut_size[0] / 2 + self.cap_size[0] / 2, 0, 6])
+        boolean_modifier(guide, center_cut)
+        activate([center_cut])
+        translate([-center_cut_size[0] - self.cap_size[0], 0, 0])
+        boolean_modifier(guide, center_cut)
+        boolean_modifier(stand, guide, modifier='UNION')
+
+        delete([hole, clear, base, clean_cut, handle_cut, cap_dovetail, screw_clear, screw_cut, center_cut, guide])
 
         activate([stand])
         # translate([0, 0, self.cap_top_extention])
@@ -1403,8 +1443,8 @@ class HeadMount2:
 
     def headfix(self):
         headfix_size = [self.bridge_width + 2 * self.bridge_thickness,
-                        self.head_fix_dims[1] + 2 * self.headfix_thickness,
-                        self.head_fix_dims[2] + 2 * self.headfix_thickness]
+                        self.head_fix_size[1] + 2 * self.headfix_thickness,
+                        self.head_fix_size[2] + 2 * self.headfix_thickness]
         headfix_location = [0, 0, 0]
         headfix = add_cube(headfix_size, headfix_location, 'headfix')
 
@@ -1429,12 +1469,12 @@ class HeadMount2:
         cut1_size = [self.bridge_width, headfix_size[1] + 2 * (self.bridge_y - self.bridge_thickness), 20]
         cut1 = add_cube(cut1_size, (0, 0, 0), 'cut1')
 
-        cut2_size = [self.cap_size[0] + 2 * (self.head_fix_dims[0] + self.headfix_clearance),
-                     self.head_fix_dims[1] + self.headfix_thickness + self.headfix_clearance + .002,
-                     self.head_fix_dims[2] + 2 * self.headfix_clearance]
+        cut2_size = [self.head_fix_size[0] + 2 * self.headfix_clearance,
+                     self.head_fix_size[1] + self.headfix_thickness + self.headfix_clearance + .002,
+                     self.head_fix_size[2] + 2 * self.headfix_clearance]
         cut2_location = [0, -cut2_size[1] / 2, 0]
         cut2 = add_cube(cut2_size, cut2_location, 'cut2')
-        bpy.ops.transform.translate(value=(0, self.head_fix_dims[1] / 2 + self.headfix_clearance, 0))
+        bpy.ops.transform.translate(value=(0, self.head_fix_size[1] / 2 + self.headfix_clearance, 0))
         select_verts(cut2, [-100, 100], [-100, -cut2_size[1]], [100, 0])
         bpy.ops.transform.translate(value=(0, 0, cut2_size[1] * tan(self.headfix_bar_slant * pi / 180)))
 
@@ -1485,9 +1525,9 @@ class HeadMount2:
         # this cuts out the hex and screw holes
         for side in [1, -1]:
             distance = 2.7
-            hex_location = [side * (self.cap_size[0] / 2 + self.head_fix_dims[0] + distance),
-                            -self.head_fix_dims[1] / 2 - distance + self.headfix_clearance,
-                            self.head_fix_dims[2] / 2 + distance]
+            hex_location = [side * (self.head_fix_size[0] / 2 + distance),
+                            -self.head_fix_size[1] / 2 - distance + self.headfix_clearance,
+                            self.head_fix_size[2] / 2 + distance]
             bpy.ops.mesh.primitive_cylinder_add(radius=self.hex_radius, depth=self.hex_depth, vertices=6,
                                                 location=(0, 0, 0), rotation=(0, 0, 0))
             hex_cut = bpy.context.active_object
@@ -1586,7 +1626,7 @@ class HeadMount:
         self.dove2_depth = 1
         self.dove2_clearance = .13  # should be .13
 
-        self.head_fix_dims = [4, 2, 2]
+        self.head_fix_size = [4, 2, 2]
         self.head_fix_cylinder_radius = .7
         self.headfix_bar_z = 1.5
 
@@ -2995,6 +3035,7 @@ class Chamber:
         self.angle_port = 45 * pi / 180
         self.width_side = 5
         self.angle_side = 0.01 * pi / 180
+        self.back_dove_angle = 51 * pi / 180
         self.thickness = .7
         self.clearance_base = .03
         self.extra_back_clearance = .03
@@ -3007,6 +3048,7 @@ class Chamber:
         self.h_bottom = 4.5
         self.h_base = .5
         self.base_back_thickness = .451  # measured so i can make frame2
+        self.frame_back_thickness = 1
         self.width_fastener = .2 + .02
         self.h_fastener = 2 * .2 + .04
         self.handle_length = .15 * self.thickness
@@ -3035,8 +3077,8 @@ class Chamber:
 
     def frame2(self):
         frame_size = [self.width_port + 2 * self.width_port * cos(self.angle_port) + 2 * self.thickness,
-                      self.width_port * sin(self.angle_port) + self.width_side + 2 * self.thickness +
-                      self.base_back_thickness,
+                      self.width_port * sin(self.angle_port) + self.width_side + self.thickness +
+                      + self.frame_back_thickness,
                       sum(self.heights)]
         frame_location = [0, -frame_size[1] / 2 + self.thickness, -frame_size[2] / 2 + self.h_top]
         frame = add_cube(frame_size, frame_location, 'frame')
@@ -3044,8 +3086,40 @@ class Chamber:
         for side in [INF_POS, INF_NEG]:
             select_verts(frame, side, INF_POS, INF)
             bevel((self.width_port + self.thickness * 2 * tan(pi / 8)) / sqrt(2))
-
         mode('OBJECT')
+
+        inner_cut_size = [frame_size[0] - self.thickness * 2,
+                          frame_size[1] - self.thickness - self.frame_back_thickness, frame_size[2] + 1]
+        inner_cut = add_cube(inner_cut_size, (0, 0, 0), 'inner_cut')
+        translate([0, -inner_cut_size[1] / 2, frame_location[2]])
+        for side in [INF_POS, INF_NEG]:
+            select_verts(inner_cut, side, INF_POS, INF)
+            bevel(self.width_port / sqrt(2))
+
+        select_verts(inner_cut, INF, INF_NEG, INF)
+        extrude_move([0, -self.frame_back_thickness / 2, 0])
+        resize([self.frame_back_thickness / inner_cut_size[0] / np.tan(self.back_dove_angle) + 1, 1, 1])
+        extrude_move([0, -self.extra_back_clearance, 0])
+        mode('OBJECT')
+        boolean_modifier(frame, inner_cut)
+        delete([inner_cut])
+
+        middle_cut = add_cube([frame_size[0] / 2, frame_size[1], frame_size[2] + 1], (0, 0, 0), 'middle_cut')
+        translate([0, frame_location[1] - frame_size[1] / 2, frame_location[2]])
+        boolean_modifier(frame, middle_cut)
+        delete([middle_cut])
+
+        bottom_cut_size = [self.width_port, self.thickness + .1, frame_size[2]]
+        bottom_cut = add_cube(bottom_cut_size, [0, 0, 0], 'bottom_cut')
+
+        width_ratio = 2 * bottom_cut_size[1] / bottom_cut_size[0] / np.tan(67 * pi / 180) + 1
+        translate([0, self.thickness / 2, -frame_size[2] / 2 - self.h_locking])
+        select_verts(bottom_cut, INF, INF_POS, INF)
+        resize([width_ratio, 1, 1])
+        select_verts(bottom_cut, INF_POS, INF, INF)
+        extrude_move([self.width_port / sqrt(2), -self.width_port / sqrt(2), 0])
+
+        # lock_cut
 
     def frame(self):
         x_inner_shifts = self.x_inner_shifts
@@ -3098,30 +3172,13 @@ class Chamber:
         extrude_move([0, -self.extra_back_clearance, 0])
         extrude()
         resize((.7, 1, 1))
+        mode('OBJECT')
 
-        for face in obj_frame.data.polygons:
-            face.select = any(i in verts for i in face.vertices) and facing_down(face.normal)
-
-        bpy.ops.object.mode_set(mode='EDIT')
-        bpy.ops.mesh.extrude_region_move(TRANSFORM_OT_translate={"value": (0, 0, -self.h_locking)})
-
-        bpy.ops.mesh.select_all(action='DESELECT')
-        bpy.ops.object.mode_set(mode='OBJECT')
-        bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
-        verts = []
-        for vert in obj_frame.data.vertices:
-            if vert.co.z < -(self.h_locking - .1) and vert.co.y < sum(y_inner_shifts) - .1:
-                verts.append(vert.index)
-
-        select_verts(obj_frame, INF, [self.thickness / 2, -100], [0, 0])
-        extrude_move((0, 0, -self.h_locking))
-        select_verts(obj_frame, INF, [-self.width_port / 3, -100], [-self.h_locking, -self.h_locking])
-        extrude_move((0, 0, -self.h_base - self.h_bottom))
-
-        bpy.ops.object.mode_set(mode='EDIT')
-        bpy.ops.mesh.extrude_region_move(TRANSFORM_OT_translate={"value": (0, 0, -self.h_base - self.h_bottom)})
-
-        bpy.ops.object.mode_set(mode='OBJECT')
+        select_verts(obj_frame, INF, [-100, self.thickness / 2], INF_NEG)
+        extrude_move([0, 0, -self.h_locking])
+        select_verts(obj_frame, INF, [-100, -self.thickness / 2], [-100, -self.h_locking])
+        extrude_move([0, 0, -self.h_base - self.h_bottom])
+        mode('OBJECT')
         return obj_frame
 
     def base(self):
@@ -3467,9 +3524,9 @@ class Chamber:
         LED_length = 5 * thickness
 
         # This adds the IR cutters
-        ir_pos = [(port_x[1] - ir_x_depth, ir_y_depth, port_z[1] + port_ir_height),
+        ir_pos = [(port_x[1] - ir_x_depth - .05, ir_y_depth, port_z[1] + port_ir_height),
                   (port_x[2] - ir_x_depth, port_y[1] + ir_y_depth_lick, tube_height - .07),
-                  (-port_x[1] + ir_x_depth, ir_y_depth, port_z[1] + port_ir_height),
+                  (-port_x[1] + ir_x_depth + .05, ir_y_depth, port_z[1] + port_ir_height),
                   (-port_x[2] + ir_x_depth, port_y[1] + ir_y_depth_lick, tube_height - .07)]
         ir1 = self.build_ir()
         bpy.ops.transform.translate(value=ir_pos[0])
@@ -3560,9 +3617,7 @@ class Chamber:
         [manipulate(obj_bottom_cut, command) for command in commands]
         boolean_modifier(obj_port, obj_bottom_cut)
 
-        for cutter in [ir1, ir2, ir3, ir4, obj_LED, obj_tube, obj_window, obj_bottom_cut]:
-            activate([cutter])
-            bpy.ops.object.delete(use_global=False)
+        delete([ir1, ir2, ir3, ir4, obj_LED, obj_tube, obj_window, obj_bottom_cut])
 
         activate([obj_port])
         bpy.context.active_object.name = 'port'
@@ -3639,6 +3694,18 @@ class Chamber:
         bpy.ops.object.mode_set(mode='OBJECT')
         bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
         return obj_detector
+
+    def blank_tri(self):
+        size = [self.width_port, self.width_port / 3, self.h_bottom - self.c_port]
+        loc = [0, -size[1] / 2, -size[2] / 2 - self.h_locking - self.c_port]
+        tri = add_cube(size, (0, 0, 0), 'tri')
+        translate(loc)
+        select_verts(tri, INF, INF_NEG, INF)
+        resize([.1, 1, 1])
+        select_verts(tri, INF, INF_NEG, INF_POS)
+        translate([0, 0, -size[2] / 4])
+        mode('OBJECT')
+        return tri
 
     def fastener(self):
         widths = [self.width_fastener] + [val * self.width_fastener for val in self.fastener_multipliers]
@@ -3893,7 +3960,7 @@ class Chamber:
         select_verts_radius(cam_attach, INF, INF, [-desired_depth / 2, -100], INF_POS, INF_POS, [0, minor_radius])
         bevel(.1)
 
-        boolean_modifier(cam_attach, screw_cut)
+        boolean_modifier(cam_attach, screw_cut, fast_solver=True)
         delete([screw_cut])
 
         activate([cam_attach])
@@ -3935,3 +4002,80 @@ class Chamber:
         boolean_modifier(cable_cover, trim)
         delete([center, trim, upper_cyl_trim, lower_cyl_trim])
         return cable_cover
+
+    def sol_holder(self, test=False):
+        leg_width = 1.5
+        bridge_height = 2
+        tube_diameter = 1.65
+        tube_height = 10
+        tube_y_offset = .4
+        stand_min_thickness = .25
+        stand_offset = .2
+        screw_diameter = .35
+        screw_separation = .92
+        holder_size = [7, tube_diameter / 2 - tube_y_offset + stand_min_thickness, 4 + bridge_height / 2]
+        stand_size = [tube_diameter + 2 * stand_min_thickness, holder_size[1] - .2 - .01, 3]
+        stand_top_depth = stand_size[0] * .7
+        base_size = [holder_size[0] + 1, holder_size[0], .5]
+
+        base = add_cube(base_size, [0, 0, 0], 'sol_base')
+        translate((0, 0, base_size[2] / 2))
+        select_verts(base, INF, INF, INF_NEG)
+        bevel(base_size[2] * .9, segments=5)
+        mode('OBJECT')
+        holder = add_cube(holder_size, [0, 0, 0], 'holder')
+        translate([0, 0, holder_size[2] / 2 + base_size[2] - .01])
+        holder_cut = add_cube([holder_size[0] - 2 * leg_width, holder_size[1] + 1, holder_size[2]], (0, 0, 0),
+                              'holder_cut')
+        translate([0, 0, holder_size[2] / 2 + base_size[2] - bridge_height])
+        boolean_modifier(holder, holder_cut)
+        boolean_modifier(holder, base, 'UNION')
+        delete([holder_cut, base])
+
+        stand = add_cube(stand_size, (0, 0, 0), 'stand')
+        stand_loc = [holder_size[0] / 4, stand_size[1] / 2 - holder_size[1] / 2 + stand_offset,
+                     base_size[2] + holder_size[2] + stand_size[2] / 2 - .01]
+        translate(stand_loc)
+        select_verts(stand, INF, INF, INF_POS)
+        extrude_move([0, 0, stand_top_depth - stand_size[1]])
+        resize([1, stand_top_depth / stand_size[1], 1])
+        translate([0, -stand_top_depth / 2 + stand_size[1] / 2, 0])
+        extrude_move([0, 0, .25])
+        mode('OBJECT')
+        tube = add_cylinder(tube_diameter / 2, tube_height, 50, 'tube')
+        translate(
+            [stand_loc[0], -holder_size[1] / 2 - .4,
+             tube_height / 2 + base_size[2] + holder_size[2] - bridge_height / 2 + 2])
+        boolean_modifier(stand, tube)
+        boolean_modifier(holder, stand, 'UNION')
+        activate([stand])
+        translate([-2 * stand_loc[0], 0, 0])
+        boolean_modifier(holder, stand, 'UNION')
+        delete([stand, tube])
+
+        screw_hole = add_cylinder(screw_diameter / 2, holder_size[1], 32, 'screw_hole')
+        translate([0, -holder_size[1] / 2, base_size[2] + holder_size[2] - bridge_height / 2])
+        select_verts(screw_hole, INF, INF, INF_POS)
+        extrude_move([0, 0, 1])
+        resize([2 / screw_diameter, 2 / screw_diameter, 1])
+        mode('OBJECT')
+        rotate(pi / 2, 'X')
+        screw_locs = [-stand_loc[0] - screw_separation / 2,
+                      -stand_loc[0] + screw_separation / 2,
+                      stand_loc[0] - screw_separation / 2,
+                      stand_loc[0] + screw_separation / 2]
+        for loc in screw_locs:
+            activate([screw_hole])
+            translate([loc, 0, 0])
+            boolean_modifier(holder, screw_hole)
+            activate([screw_hole])
+            translate([-loc, 0, 0])
+        delete([screw_hole])
+        if test:
+            test_block_size = [1.2 * stand_size[0], stand_top_depth * 2,
+                               bridge_height + stand_size[2] + stand_top_depth]
+            test_block = add_cube(test_block_size, [0, 0, 0], 'test_block')
+            translate([stand_loc[0], 0, test_block_size[2] / 2 + base_size[2] + holder_size[2] - bridge_height - .01])
+            boolean_modifier(holder, test_block, 'INTERSECT')
+            delete([test_block])
+        return holder
