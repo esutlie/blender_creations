@@ -20,7 +20,7 @@ from builds import *
 # On windows, open blender app, then click "window -> toggle system console"
 
 render_anatomy = False
-export = False
+export = True
 build_mount = False
 build_mount2 = False
 build_chamber = True
@@ -100,8 +100,8 @@ if build_chamber:
     # chamber.cut_screw_holes(chamber.objects)
     # chamber.objects.append(chamber.cam_attach())
     # chamber.objects.append(chamber.cam_cover())
-    # chamber.objects.append(chamber.cable_cover())
-    chamber.objects.append(chamber.sol_holder(test=False))
+    chamber.objects.append(chamber.cable_cover(hole=True))
+    # chamber.objects.append(chamber.sol_holder(test=False, num=3))
     #
     # # This moves and duplicates the blank port
     # activate([obj_port])

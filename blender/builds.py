@@ -3979,7 +3979,7 @@ class Chamber:
         translate(self.cam_hole_location)
         return cam_cover
 
-    def cable_cover(self):
+    def cable_cover(self, hole=False):
         # cable_cover = add_cylinder(self.cable_radius + .25, self.thickness / 2, 100, 'cable_cover')
         # center = add_cylinder(self.cable_radius - .02, self.thickness, 100, 'center')
         cable_cover = add_cube([.7 * self.width_port, self.width_port + .1, self.thickness / 2], [0, 0, 0],
@@ -4000,11 +4000,21 @@ class Chamber:
         trim = add_cube([self.cable_radius * 4, self.cable_radius * 2, self.thickness * 5], [0, 0, 0], 'trim')
         translate([0, self.cable_radius - self.clearance_base, self.h_top])
         boolean_modifier(cable_cover, trim)
+        if hole == True:
+            radius = .45
+            hole_cut = add_cylinder(radius, 5, 32, 'hole')
+            translate(self.cable_location)
+            translate([0, -.1, 0])
+            boolean_modifier(cable_cover, hole_cut)
+            delete([hole_cut])
+            activate([cable_cover])
+            select_verts(cable_cover, [-radius, radius], [-radius * 1.3, radius*.9], INF)
+            bevel(.05)
         delete([center, trim, upper_cyl_trim, lower_cyl_trim])
         return cable_cover
 
-    def sol_holder(self, test=False):
-        leg_width = 1.5
+    def sol_holder(self, test=False, num=2):
+        leg_width = num / 2 + .5
         bridge_height = 2
         tube_diameter = 1.65
         tube_height = 10
@@ -4013,8 +4023,12 @@ class Chamber:
         stand_offset = .2
         screw_diameter = .35
         screw_separation = .92
-        holder_size = [7, tube_diameter / 2 - tube_y_offset + stand_min_thickness, 4 + bridge_height / 2]
-        stand_size = [tube_diameter + 2 * stand_min_thickness, holder_size[1] - .2 - .01, 3]
+        side_x = .6
+        gap = 1.35
+        stand_width = tube_diameter + 2 * stand_min_thickness
+        holder_size = [num * stand_width + (num - 1) * gap + 2 * side_x,
+                       tube_diameter / 2 - tube_y_offset + stand_min_thickness, 4 + bridge_height / 2]
+        stand_size = [stand_width, holder_size[1] - .2 - .01, 3]
         stand_top_depth = stand_size[0] * .7
         base_size = [holder_size[0] + 1, holder_size[0], .5]
 
@@ -4033,7 +4047,8 @@ class Chamber:
         delete([holder_cut, base])
 
         stand = add_cube(stand_size, (0, 0, 0), 'stand')
-        stand_loc = [holder_size[0] / 4, stand_size[1] / 2 - holder_size[1] / 2 + stand_offset,
+        stand_loc = [holder_size[0] / 2 - stand_width / 2 - side_x,
+                     stand_size[1] / 2 - holder_size[1] / 2 + stand_offset,
                      base_size[2] + holder_size[2] + stand_size[2] / 2 - .01]
         translate(stand_loc)
         select_verts(stand, INF, INF, INF_POS)
@@ -4047,11 +4062,6 @@ class Chamber:
             [stand_loc[0], -holder_size[1] / 2 - .4,
              tube_height / 2 + base_size[2] + holder_size[2] - bridge_height / 2 + 2])
         boolean_modifier(stand, tube)
-        boolean_modifier(holder, stand, 'UNION')
-        activate([stand])
-        translate([-2 * stand_loc[0], 0, 0])
-        boolean_modifier(holder, stand, 'UNION')
-        delete([stand, tube])
 
         screw_hole = add_cylinder(screw_diameter / 2, holder_size[1], 32, 'screw_hole')
         translate([0, -holder_size[1] / 2, base_size[2] + holder_size[2] - bridge_height / 2])
@@ -4060,17 +4070,27 @@ class Chamber:
         resize([2 / screw_diameter, 2 / screw_diameter, 1])
         mode('OBJECT')
         rotate(pi / 2, 'X')
-        screw_locs = [-stand_loc[0] - screw_separation / 2,
-                      -stand_loc[0] + screw_separation / 2,
-                      stand_loc[0] - screw_separation / 2,
-                      stand_loc[0] + screw_separation / 2]
-        for loc in screw_locs:
-            activate([screw_hole])
-            translate([loc, 0, 0])
+        translate([stand_loc[0] + screw_separation / 2, 0, 0])
+        boolean_modifier(holder, screw_hole)
+        activate([screw_hole])
+        translate([-screw_separation, 0, 0])
+        boolean_modifier(holder, screw_hole)
+        boolean_modifier(holder, stand, 'UNION')
+
+        for _ in range(num - 1):
+            activate([stand, screw_hole])
+            translate([-stand_width - gap, 0, 0])
+            boolean_modifier(holder, stand, 'UNION')
             boolean_modifier(holder, screw_hole)
             activate([screw_hole])
-            translate([-loc, 0, 0])
+            translate([screw_separation, 0, 0])
+            boolean_modifier(holder, screw_hole)
+            activate([screw_hole])
+            translate([-screw_separation, 0, 0])
+
+        delete([stand, tube])
         delete([screw_hole])
+
         if test:
             test_block_size = [1.2 * stand_size[0], stand_top_depth * 2,
                                bridge_height + stand_size[2] + stand_top_depth]
