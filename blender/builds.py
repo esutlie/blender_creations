@@ -107,7 +107,7 @@ class HeadMount2:
         self.cap_size[2] = self.holder_xyz[2] + self.holder_size[2] + self.cap_top_extention
         self.cap_bottom_thickness = 1.5
         self.cap_bottom_lip = .7
-        self.cap_window_width = 1
+        self.cap_window_width = 1.5
         self.cap_window_base_thickness = self.cap_bottom_thickness + .001
 
         self.head_fix_size = [18, 2, 2]
@@ -279,9 +279,6 @@ class HeadMount2:
         select_verts(cap_dovetail, [-dove2_size[0] / 2, dove2_size[0] / 2], [0, dove2_location[1]], [-100, 100])
         ratio = 1 + 2 * dove2_size[1] / sqrt(3) / dove2_size[0]
         bpy.ops.transform.resize(value=(ratio, 1, 1))
-        if type == 'grinder':
-            mode('OBJECT')
-            translate([0, 0, -3])
 
         boolean_modifier(holder, cap_dovetail)
         select_verts(holder, [-self.dove2_width / 2, self.dove2_width / 2], [self.holder_size[1], 100], [-100, 100])
@@ -400,20 +397,31 @@ class HeadMount2:
             boolean_modifier(holder, screw_cut)
             delete([screw_cut])
 
-        if type == 'grinder':
-            post_size = [self.post_diameter, self.post_diameter, self.holder_size[2] + 1]
-            post_location = [0, 0, self.holder_size[2] / 2]
-            post = add_cube(post_size, post_location, 'post')
-            bpy.ops.transform.rotate(value=pi / 4, orient_axis='Z')
-            bpy.ops.transform.translate(value=[self.grinder_post_separation / 2, self.holder_size[1] + .001, 0])
-            boolean_modifier(holder, post)
-            activate([post])
-            bpy.ops.transform.translate(value=[-self.grinder_post_separation, 0, 0])
-            boolean_modifier(holder, post)
-            delete([post])
+            # This adds the filler on the bottom
+            filler_size = [self.holder_size[0] - 2 * (self.cap_bottom_lip + self.holder_clearance),
+                           self.holder_size[1] - 2 * (self.cap_bottom_lip + self.holder_clearance) - .5,
+                           2 * (self.cap_size[2] - self.holder_size[2] - self.cap_bottom_thickness
+                                - self.holder_clearance - self.cap_top_extention)]
+            filler = add_cube(filler_size, (0, 0, 0), 'filler')
+            translate([0, filler_size[1] / 2 + self.cap_bottom_lip + self.holder_clearance, .01])
+            boolean_modifier(holder, filler, modifier='UNION')
+            delete([filler])
+
 
         activate([holder])
         bpy.ops.transform.translate(value=self.holder_xyz)
+
+        if type == 'stopper':
+            cyl_filler = add_cylinder(self.lip_inner_radius - self.holder_clearance, self.lip_height/2, 32, 'cyl_filler')
+            translate([self.PIXEL_X_OFFSET, 0, self.lip_height / 4])
+            resize([1.3, 1, 1])
+            select_verts(cyl_filler, INF, INF, INF_POS)
+            extrude_move([0, 0, self.cap_bottom_thickness])
+            resize([1.3, 3, 1])
+            extrude_move([0,0,self.holder_size[2]/3])
+            mode('OBJECT')
+            boolean_modifier(holder, cyl_filler, modifier='UNION')
+            delete([cyl_filler])
 
         if shield:
             self.add_shield(holder, num_shield=2)
@@ -467,10 +475,19 @@ class HeadMount2:
         outer_lip = bpy.context.active_object
         oval_amount = .3
         resize([1 + oval_amount * self.lip_inner_radius / self.lip_outer_radius, 1, 1])
-        bpy.ops.mesh.primitive_cylinder_add(radius=self.lip_inner_radius, depth=15,
-                                            location=(self.PIXEL_X_OFFSET, 0, 0))
-        inner_lip = bpy.context.active_object
+        inner_lip = add_cylinder(self.lip_inner_radius, self.lip_height, 32, 'inner_lip')
+        translate([self.PIXEL_X_OFFSET, 0, -self.lip_height / 2])
         resize([1 + oval_amount, 1, 1])
+        select_verts(inner_lip, INF, INF, INF_POS)
+        extrude_move([0, 0, (self.lip_outer_radius - self.lip_inner_radius) / 2])
+        extrude_move([0, 0, 2 * self.cap_bottom_thickness])
+        resize([2, 5, 1])
+        mode('OBJECT')
+        cap_wall = add_cube(self.cap_size, (0, 0, 0), 'cap_wall')
+        translate(cap_location)
+        translate([0, -self.cap_size[1] + self.cap_wall_thickness + hole_size[1] / 2 + self.holder_xyz[1]
+                   - self.cap_clearance + .01, self.cap_bottom_thickness + .01])
+        boolean_modifier(inner_lip, cap_wall)
 
         # This makes the cap dovetail
         dove2_size = [self.dove2_width - 2 * self.cap_clearance, self.dove2_depth - self.cap_clearance,
@@ -568,7 +585,7 @@ class HeadMount2:
             boolean_modifier(cap, hex_screw)
 
         delete([head_fix, hole, clear, outer_lip, inner_lip, screw_cut, hex_screw,
-                cap_dovetail, window, divot_cut1, divot_cut2, handle_cut])
+                cap_dovetail, window, divot_cut1, divot_cut2, handle_cut, cap_wall])
 
         if shield:
             self.add_shield(cap, num_shield=2)
@@ -657,7 +674,7 @@ class HeadMount2:
 
         # This makes the headstage mount
         z_separation = 1
-        y_separation = 1
+        y_separation = 1.5  # Increased from 1mm
         mount_size = [self.holder_size[0] + self.cover_thickness * 2, self.cover_thickness, self.headstage_size[2]]
         mount_location = [0, -self.cover_size[1] / 2 - mount_size[1] / 2 + self.cover_thickness - y_separation,
                           self.cover_size[2] / 2 + mount_size[2] / 2 + z_separation - .001]
@@ -4008,7 +4025,7 @@ class Chamber:
             boolean_modifier(cable_cover, hole_cut)
             delete([hole_cut])
             activate([cable_cover])
-            select_verts(cable_cover, [-radius, radius], [-radius * 1.3, radius*.9], INF)
+            select_verts(cable_cover, [-radius, radius], [-radius * 1.3, radius * .9], INF)
             bevel(.05)
         delete([center, trim, upper_cyl_trim, lower_cyl_trim])
         return cable_cover

@@ -20,10 +20,10 @@ from builds import *
 # On windows, open blender app, then click "window -> toggle system console"
 
 render_anatomy = False
-export = True
+export = False
 build_mount = False
-build_mount2 = False
-build_chamber = True
+build_mount2 = True
+build_chamber = False
 shield = False
 
 # This is for the neuropixel head mount system
@@ -33,14 +33,14 @@ if build_mount2:
     # mount.pixel()
     # mount.objects.append(mount.pixel())
     # mount.objects.append(mount.holder(shield=shield, type='holder'))
-    # mount.objects.append(mount.cap(shield=shield))
+    mount.objects.append(mount.cap(shield=shield))
     # mount.objects.append(mount.cover(shield=shield))
     # mount.objects.append(mount.holder(shield=shield, type='surgery'))
-    # mount.objects.append(mount.holder(shield=shield, type='stopper'))
+    mount.objects.append(mount.holder(shield=shield, type='stopper'))
     # mount.objects.append(mount.holder(shield=shield, type='grinder'))
-    tube = mount.tube()
-    mount.objects.append(tube[0])
-    mount.objects.append(tube[1])
+    # tube = mount.tube()
+    # mount.objects.append(tube[0])
+    # mount.objects.append(tube[1])
     # mount.objects.append(mount.tube(play=True))
     # mount.objects.append(mount.stand())
     # mount.objects.append(mount.stand(test=False))
