@@ -257,8 +257,11 @@ def mode(val):
     bpy.ops.object.mode_set(mode=val)
 
 
-def rotate(val, axis):
-    bpy.ops.transform.rotate(value=val, orient_axis=axis)
+def rotate(val, axis, center_override=None):  # chamber.center + [0] was used for center override before
+    if center_override:
+        bpy.ops.transform.rotate(value=val, orient_axis=axis, center_override=center_override)
+    else:
+        bpy.ops.transform.rotate(value=val, orient_axis=axis)
 
 
 def bevel(val, segments=1):
@@ -304,7 +307,7 @@ def export_stl(p, scale=1):
         os.makedirs(path)
 
     # This writes the parameters file
-    f = open(path + "params_used.txt", "w+")
+    f = open(path + "_params_used.txt", "w+")
     for param in [a for a in dir(p) if not a.startswith('__')]:
         f.write(param + f': {getattr(p, param)}\r\n')
     f.close()

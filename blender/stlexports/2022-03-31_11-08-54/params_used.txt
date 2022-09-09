@@ -1,0 +1,56 @@
+angle_port: 0.7853981633974483
+angle_side: 0.00017453292519943296
+back_dove_angle: 0.890117918517108
+base: <bound method Chamber.base of <builds.Chamber object at 0x12e4e7df0>>
+base_back_factor: 1.02
+base_back_thickness: 0.451
+base_points: [[1.2375735931288072, -0.03], [2.9877669528906634, -1.780193359761856], [2.987766922440219, -6.778338868492769], [3.3724724245309647, -7.256389591581498]]
+blank_tri: <bound method Chamber.blank_tri of <builds.Chamber object at 0x12e4e7df0>>
+build_ir: <bound method Chamber.build_ir of <builds.Chamber object at 0x12e4e7df0>>
+c_port: 0.03
+cable_cover: <bound method Chamber.cable_cover of <builds.Chamber object at 0x12e4e7df0>>
+cable_location: [0, -0.5333333333333333, 4]
+cable_radius: 0.8
+cam_attach: <bound method Chamber.cam_attach of <builds.Chamber object at 0x12e4e7df0>>
+cam_attach_depth: 0.5
+cam_cover: <bound method Chamber.cam_cover of <builds.Chamber object at 0x12e4e7df0>>
+cam_cover_diameter: 2.5
+cam_hole_diameter: 3.5
+cam_hole_location: [0, -3.3838834764831844, 4]
+cam_lip_diameter: 4
+center: [0.0, -3.0177669529663693]
+clearance_base: 0.03
+clearance_fastener: 0.023
+cut_fastener_holes: <bound method Chamber.cut_fastener_holes of <builds.Chamber object at 0x12e4e7df0>>
+cut_screw_holes: <bound method Chamber.cut_screw_holes of <builds.Chamber object at 0x12e4e7df0>>
+external_points: [[1.5399494936611664, 0.7], [3.7177669529663686, -1.477817459305202], [3.7177669154387334, -7.63761534013078]]
+extra_back_clearance: 0.03
+eye_separation: 1.2
+factor: 0.23195959492893317
+fastener: <bound method Chamber.fastener of <builds.Chamber object at 0x12e4e7df0>>
+fastener_multipliers: [1.3, 0.9, 0.5, 0.2]
+fastener_x: 0.625
+fastener_z: -0.75
+frame: <bound method Chamber.frame of <builds.Chamber object at 0x12e4e7df0>>
+frame2: <bound method Chamber.frame2 of <builds.Chamber object at 0x12e4e7df0>>
+frame_back_thickness: 1
+h_base: 0.5
+h_bottom: 4.5
+h_fastener: 0.44
+h_locking: 3
+h_top: 4
+handle_length: 0.105
+heights: [0.5, 4.5, 3, 4]
+internal_points: [[1.25, 0], [3.017766952966369, -1.7677669529663687], [3.017766922504627, -6.767766876812014]]
+objects: [bpy.data.objects['port']]
+overrider: {'active_annotation_layer': None, 'active_bone': None, 'active_editable_fcurve': None, 'active_gpencil_frame': None, 'active_gpencil_layer': None, 'active_object': None, 'active_operator': <bpy_struct, Operator("TEXT_OT_run_script") at 0x7fa6050dd748>, 'active_pose_bone': None, 'annotation_data': None, 'annotation_data_owner': None, 'area': bpy.data.screens['Layout']...Area, 'blend_data': bpy.data.scenes['Scene']...BlendData, 'collection': bpy.data.scenes['Scene'].collection, 'edit_object': None, 'edit_text': bpy.data.texts['call_file_win.py'], 'editable_bones': None, 'editable_fcurves': None, 'editable_gpencil_layers': None, 'editable_gpencil_strokes': None, 'editable_objects': [], 'engine': 'BLENDER_EEVEE', 'evaluated_depsgraph_get': <bpy_func Context.evaluated_depsgraph_get()>, 'gizmo_group': None, 'gpencil_data': None, 'gpencil_data_owner': None, 'image_paint_object': None, 'layer_collection': bpy.data.scenes['Scene']...LayerCollection, 'mode': 'OBJECT', 'object': None, 'objects_in_mode': [], 'objects_in_mode_unique_data': [], 'particle_edit_object': None, 'pose_object': None, 'preferences': <bpy_struct, Preferences at 0x110566060>, 'region': bpy.data.screens['Layout']...Region, 'region_data': None, 'scene': bpy.data.scenes['Scene'], 'screen': bpy.data.screens['Layout'], 'sculpt_object': None, 'selectable_objects': [], 'selected_bones': None, 'selected_editable_bones': None, 'selected_editable_fcurves': None, 'selected_editable_keyframes': None, 'selected_editable_objects': [], 'selected_editable_sequences': [], 'selected_nla_strips': None, 'selected_objects': [], 'selected_pose_bones': None, 'selected_pose_bones_from_active_object': None, 'selected_sequences': [], 'selected_visible_fcurves': None, 'sequences': [], 'space_data': bpy.data.screens['Layout']...SpaceView3D, 'tool_settings': bpy.data.scenes['Scene'].tool_settings, 'vertex_paint_object': None, 'view_layer': bpy.data.scenes['Scene'].view_layers["View Layer"], 'visible_bones': None, 'visible_fcurves': None, 'visible_gpencil_layers': None, 'visible_objects': [], 'visible_pose_bones': None, 'weight_paint_object': None, 'window': bpy.data.window_managers['WinMan']...Window, 'window_manager': bpy.data.window_managers['WinMan'], 'workspace': bpy.data.workspaces['Layout']}
+place_fasteners: <bound method Chamber.place_fasteners of <builds.Chamber object at 0x12e4e7df0>>
+port: <bound method Chamber.port of <builds.Chamber object at 0x12e4e7df0>>
+segments: 2
+sol_holder: <bound method Chamber.sol_holder of <builds.Chamber object at 0x12e4e7df0>>
+thickness: 0.7
+width_fastener: 0.22
+width_port: 2.5
+width_side: 5
+x_inner_shifts: [1.25, 1.7677669529663689, -3.046174182401791e-08]
+y_inner_shifts: [0, -1.7677669529663687, -4.999999923845645]
