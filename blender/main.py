@@ -34,11 +34,11 @@ if build_mount2:
     for c in clearance_modifiers:
         mount = HeadMount2(clearance_modifier2=c)
         # mount.pixel()
-        # mount.objects.append(mount.pixel())
+        mount.objects.append(mount.pixel())
         mount.objects.append(mount.holder(shield=shield, type='holder', name='holder' + str(c)))
         mount.objects.append(mount.cap(shield=shield, name='cap' + str(c)))
         mount.objects.append(mount.cover(shield=shield, name='cover' + str(c)))
-        mount.objects.append(mount.holder(shield=shield, type='surgery', name='surgery' + str(c)))
+        # mount.objects.append(mount.holder(shield=shield, type='surgery', name='surgery' + str(c)))
         # mount.objects.append(mount.holder(shield=shield, type='stopper', name='stopper' + str(c)))
         # mount.objects.append(mount.holder(shield=shield, type='grinder'))
         # tube = mount.tube()
