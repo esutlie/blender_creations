@@ -20,24 +20,24 @@ from builds import *
 # On windows, open blender app, then click "window -> toggle system console"
 
 render_anatomy = False
-export = False
-build_mount = False
-build_mount2 = True
-build_chamber = False
+export = True
+build_mount2 = False
+build_chamber = True
 shield = False
 
 # This is for the neuropixel head mount system
 if build_mount2:
     initialize_blender()
-    clearance_modifiers = [0, .1, .2, .3, .4, .5, .6]
-    # clearance_modifiers = [0]
+    # clearance_modifiers = [0, .1, .2, .3, .4, .5, .6]
+    clearance_modifiers = [.2, .3, .35, .4, .5]
     for c in clearance_modifiers:
         mount = HeadMount2(clearance_modifier2=c)
         # mount.pixel()
-        mount.objects.append(mount.pixel())
+        # mount.objects.append(mount.pixel())
         mount.objects.append(mount.holder(shield=shield, type='holder', name='holder' + str(c)))
-        mount.objects.append(mount.cap(shield=shield, name='cap' + str(c)))
-        mount.objects.append(mount.cover(shield=shield, name='cover' + str(c)))
+        # mount.objects.append(mount.cap(shield=shield, name='cap' + str(c)))
+        # mount.objects.append(mount.cover(shield=shield, name='cover' + str(c)))
+        # mount.objects.append(mount.hat(name='hat' + str(c)))
         # mount.objects.append(mount.holder(shield=shield, type='surgery', name='surgery' + str(c)))
         # mount.objects.append(mount.holder(shield=shield, type='stopper', name='stopper' + str(c)))
         # mount.objects.append(mount.holder(shield=shield, type='grinder'))
@@ -93,7 +93,7 @@ if build_chamber:
 
     # This builds the components
     # chamber.objects.append(chamber.frame())
-    # chamber.objects.append(chamber.base(flat_side=True))
+    # chamber.objects.append(chamber.base(flat_side=False, have_floor=False))
     # obj_port = chamber.port(blank=False)
     # obj_blank = chamber.port(blank=True)
     # chamber.objects.append(chamber.blank_tri())
@@ -103,8 +103,8 @@ if build_chamber:
     # chamber.cut_screw_holes(chamber.objects)
     # chamber.objects.append(chamber.cam_attach())
     # chamber.objects.append(chamber.cam_cover())
-    # chamber.objects.append(chamber.cable_cover(hole=True))
-    chamber.objects.append(chamber.sol_holder(test=False, num=3))
+    chamber.objects.append(chamber.cable_cover(hole=True))
+    # chamber.objects.append(chamber.sol_holder(test=False, num=3))
     #
     # # This moves and duplicates the blank port
     # activate([obj_port])

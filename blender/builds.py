@@ -125,7 +125,7 @@ class HeadMount2:
         self.plug_wall = .5
 
         # cover settings
-        self.headstage_size = [17, 3, 12]
+        self.headstage_size = [10, 3, 12]
         self.cover_thickness = 1.3
         self.cover_holder_space = self.holder_size[2]
         self.cover_lip_depth = 1.5
@@ -231,6 +231,23 @@ class HeadMount2:
         self.ground_inner_radius = .5
         self.ground_outer_radius = .6
         self.ground_cap_radius = .9
+
+        # This defines parameters for the mount
+        self.mount_z_separation = 1
+        self.mount_y_separation = 1.5  # Increased from 1mm
+        self.mount_size = [self.holder_size[0] + self.cover_thickness * 2, self.cover_thickness, self.headstage_size[2]]
+        self.mount_location = [0, -self.cover_size[1] / 2 - self.mount_size[
+            1] / 2 + self.cover_thickness - self.mount_y_separation,
+                               self.cover_size[2] / 2 + self.mount_size[2] / 2 + self.mount_z_separation - .001]
+
+        # This defines stuff for the hat
+        self.hat_clearance = .2
+        self.hat_thickness = .3
+        self.flex_x = 7
+        self.flex_y = 6
+        self.flex_z = 16
+        self.headstage_thickness = 1.5
+        self.cyl_radius = .7
 
     def pixel(self):
         # This makes the object
@@ -682,18 +699,14 @@ class HeadMount2:
         bpy.ops.object.mode_set(mode='OBJECT')
 
         # This makes the headstage mount
-        z_separation = 1
-        y_separation = 1.5  # Increased from 1mm
-        mount_size = [self.holder_size[0] + self.cover_thickness * 2, self.cover_thickness, self.headstage_size[2]]
-        mount_location = [0, -self.cover_size[1] / 2 - mount_size[1] / 2 + self.cover_thickness - y_separation,
-                          self.cover_size[2] / 2 + mount_size[2] / 2 + z_separation - .001]
-        mount = add_cube(mount_size, (0, 0, 0), 'mount')
-        translate(mount_location)
+        mount = add_cube(self.mount_size, (0, 0, 0), 'mount')
+        translate(self.mount_location)
         select_verts(mount, [-100, 100], [-100, 100], [-100, 0])
-        extrude_move((0, y_separation, -z_separation))
-        resize((1, (self.cover_thickness + z_separation) / self.cover_thickness, 1))
-        translate((0, z_separation / 2, 0))
-        select_verts(mount, INF, [-100, -mount_size[1] / 2 + y_separation], [-100, -mount_size[2] / 2 - z_separation])
+        extrude_move((0, self.mount_y_separation, -self.mount_z_separation))
+        resize((1, (self.cover_thickness + self.mount_z_separation) / self.cover_thickness, 1))
+        translate((0, self.mount_z_separation / 2, 0))
+        select_verts(mount, INF, [-100, -self.mount_size[1] / 2 + self.mount_y_separation],
+                     [-100, -self.mount_size[2] / 2 - self.mount_z_separation])
         translate([0, 0, -5])
         boolean_modifier(cover, mount, modifier='UNION')
         delete([mount])
@@ -812,6 +825,70 @@ class HeadMount2:
         if shield:
             self.add_shield(cover, num_shield=2)
         return cover
+
+    def hat(self, name='hat'):
+        hat_size = [self.flex_x + self.hat_thickness * 2,
+                    self.flex_y + self.hat_thickness,
+                    self.flex_z + self.hat_thickness]
+        hat = add_cube(hat_size, (0, 0, 0), name)
+        translate([0, 0, hat_size[2] / 2 + .001])
+
+        mount_adddition_size = [self.mount_size[0] + (self.hat_thickness + self.hat_clearance) * 2,
+                                self.mount_size[1] + (self.hat_thickness + self.hat_clearance) * 2 +
+                                self.headstage_thickness + self.cyl_radius * 2 * .9,
+                                self.mount_size[2] + self.hat_thickness + self.hat_clearance + .2]
+        mount_addition = add_cube(mount_adddition_size, (0, 0, 0), 'mount_addition')
+        translate([0, (hat_size[1] + mount_adddition_size[1]) / 2 - self.hat_thickness, mount_adddition_size[2] / 2])
+
+        mid_cut1 = add_cube([self.flex_x, hat_size[1] - self.hat_thickness * 2, hat_size[2]], (0, 0, 0),
+                            name='mid_cut1')
+        translate([0, 0, hat_size[2] / 2 - self.hat_thickness])
+
+        mid_cut2 = add_cube([self.flex_x - .01, 100 - .01, mount_adddition_size[2] - .01], (0, 0, 0), name='mid_cut2')
+        translate([0, 50 - hat_size[1] / 2 + self.hat_thickness, mount_adddition_size[2] / 2 - self.hat_thickness])
+
+        mount_slot_size = [self.mount_size[0] + self.hat_clearance * 2, self.mount_size[1] + self.hat_clearance * 2,
+                           mount_adddition_size[2] - self.hat_thickness + .02]
+        mount_slot = add_cube(mount_slot_size, (0, 0, 0), 'mount_slot')
+        translate([0, (hat_size[1] + mount_slot_size[1]) / 2, mount_slot_size[2] / 2 - .01])
+
+        hs_slot_size = [self.headstage_size[0] + self.hat_clearance * 2,
+                        self.headstage_thickness + 2 * self.cyl_radius + 1,
+                        mount_adddition_size[2] + 1]
+        hs_slot = add_cube(hs_slot_size, (0, 0, 0), 'mount_slot')
+        translate([0, (hat_size[1] + hs_slot_size[1]) / 2 + mount_slot_size[1] + self.hat_thickness,
+                   hs_slot_size[2] / 2 - .5])
+        cyl_pos = [hs_slot_size[0] / 2 + .3 * self.cyl_radius - .03, (hat_size[1]) / 2 + mount_slot_size[1]
+                   + self.hat_thickness + self.headstage_thickness + self.cyl_radius + .01, hs_slot_size[2] / 2 - .5]
+        cyl1 = add_cylinder(self.cyl_radius, 100, 100, 'cyl1')
+        translate(cyl_pos)
+        cyl2 = add_cylinder(self.cyl_radius, 100, 100, 'cyl2')
+        translate([-cyl_pos[0], cyl_pos[1], cyl_pos[2]])
+
+        slant = add_cube([30, 30, 10], (0, 0, 0), 'slant')
+        translate([0, 0, -6])
+        rotate(-pi / 6 * .9, 'X')
+
+        screw_bed_size = [hat_size[0] + 1, 5, 1.2]
+        screw_bed = add_cube(screw_bed_size, (0, 0, 0), 'screw_bed')
+        translate([0, hat_size[1] / 2 - screw_bed_size[1] / 2 - 4.5, screw_bed_size[2] / 2 - .01])
+
+        boolean_modifier(hat, mount_addition, modifier='UNION')
+        boolean_modifier(hat, mid_cut1)
+        boolean_modifier(hat, mid_cut2)
+        boolean_modifier(hat, mount_slot)
+        boolean_modifier(hs_slot, cyl1)
+        boolean_modifier(hs_slot, cyl2)
+        boolean_modifier(hat, hs_slot)
+        boolean_modifier(hat, slant)
+        boolean_modifier(hat, screw_bed)
+
+        delete([mount_addition, mid_cut1, mid_cut2, mount_slot, hs_slot, cyl1, cyl2, slant, screw_bed])
+
+        activate([hat])
+        translate(self.cover_xyz)
+        rotate(pi, 'Z')
+        return hat
 
     def stopper(self, shield=False, name='stopper'):
         # This makes the piece that permanently attaches to the pixel
@@ -1734,7 +1811,7 @@ class Chamber:
         mode('OBJECT')
         return obj_frame
 
-    def base(self, flat_side=False):
+    def base(self, flat_side=False, have_floor=True):
         coords = self.base_points
         width = 2 * coords[2][0]
         bpy.ops.mesh.primitive_plane_add(size=width,
@@ -1746,7 +1823,7 @@ class Chamber:
 
         bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
         obj_base = bpy.context.active_object
-        bpy.context.active_object.name = 'plexiglass_base'
+        bpy.context.active_object.name = 'floorless_base'
 
         # This makes the back piece
         bpy.ops.object.mode_set(mode='EDIT')
@@ -1771,18 +1848,19 @@ class Chamber:
         bpy.ops.mesh.select_all(action='DESELECT')
         bpy.ops.object.mode_set(mode='OBJECT')
 
-        # This makes the base section
-        verts = [0, 1, 4, 5]
-        for vert in verts:
-            obj_base.data.vertices[vert].select = True
-        bpy.ops.object.mode_set(mode='EDIT')
-        bpy.ops.mesh.extrude_region_move(TRANSFORM_OT_translate={"value": (0, coords[1][1] - coords[2][1], 0)})
-        bpy.ops.transform.resize(value=(coords[1][0] / coords[2][0], 1, 1))
-        bpy.ops.mesh.extrude_region_move(TRANSFORM_OT_translate={"value": (0, coords[0][1] - coords[1][1], 0)})
-        bpy.ops.transform.resize(value=(coords[0][0] / coords[1][0], 1, 1))
-        bpy.context.active_object.name = 'base'
-        bpy.ops.mesh.select_all(action='DESELECT')
-        bpy.ops.object.mode_set(mode='OBJECT')
+        if have_floor:
+            # This makes the base section
+            verts = [0, 1, 4, 5]
+            for vert in verts:
+                obj_base.data.vertices[vert].select = True
+            bpy.ops.object.mode_set(mode='EDIT')
+            bpy.ops.mesh.extrude_region_move(TRANSFORM_OT_translate={"value": (0, coords[1][1] - coords[2][1], 0)})
+            bpy.ops.transform.resize(value=(coords[1][0] / coords[2][0], 1, 1))
+            bpy.ops.mesh.extrude_region_move(TRANSFORM_OT_translate={"value": (0, coords[0][1] - coords[1][1], 0)})
+            bpy.ops.transform.resize(value=(coords[0][0] / coords[1][0], 1, 1))
+            bpy.context.active_object.name = 'base'
+            bpy.ops.mesh.select_all(action='DESELECT')
+            bpy.ops.object.mode_set(mode='OBJECT')
 
         # This makes the top
         select_verts(obj_base, [-100, 100], [coords[2][1], coords[2][1]], [self.h_top - self.h_base, self.h_top])
@@ -1879,7 +1957,7 @@ class Chamber:
         z_extra = [2.5, 3.2]  # new 9/22/21
         # z_dims = [1.5, 2.3, 2.6]  # Original
         # z_extra = [1.9, 3.2]  # Original
-        extended_back = 1
+        extended_back = .8  # 1 for regualar port, .8 for the new thin port to work with the circuit boards
 
         LED_diameter = .55
         tube_diameter = .25
@@ -2153,7 +2231,7 @@ class Chamber:
         # This adds window cutter
         window_height = -self.h_bottom - self.h_locking + 2.4
         bpy.ops.mesh.primitive_cube_add(size=1, location=(0, y_shifts[0] + .5, window_height))
-        bpy.ops.transform.resize(value=(.5, 1, .7))
+        bpy.ops.transform.resize(value=(.5, .8, .7))
         obj_window = bpy.context.active_object
 
         commands = [
@@ -2186,6 +2264,12 @@ class Chamber:
         ]
         [manipulate(obj_bottom_cut, command) for command in commands]
         boolean_modifier(obj_port, obj_bottom_cut)
+
+        mode('EDIT')
+        bpy.ops.mesh.select_all(action='SELECT')
+        bpy.ops.mesh.remove_doubles()
+        bpy.ops.mesh.fill_holes()
+        bpy.ops.object.mode_set(mode='OBJECT')
 
         delete([ir1, ir2, ir3, ir4, obj_LED, obj_tube, obj_window, obj_bottom_cut])
 
