@@ -309,7 +309,8 @@ def export_stl(p, scale=1):
     # This writes the parameters file
     f = open(path + "_params_used.txt", "w+")
     for param in [a for a in dir(p) if not a.startswith('__')]:
-        f.write(param + f': {getattr(p, param)}\r\n')
+        # f.write(param + f': {getattr(p, param)}\r\n')
+        f.write(param + ': ' + str(getattr(p, param)) + '\r\n')
     f.close()
 
     # This corrects Normals, Triangles, and Manifold Errors

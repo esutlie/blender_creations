@@ -961,115 +961,6 @@ class HeadMount2:
 
         return stopper
 
-    def stabber(self, shield=False):
-        # This makes the piece that permanently attaches to the pixel
-        stabber_location = [0, self.holder_size[1] / 2, self.holder_size[2] / 2]
-        stabber = add_cube(self.holder_size, stabber_location, 'stabber')
-        for x in [[0, 100], [-100, 0]]:
-            select_verts(stabber, x, [self.holder_size[1], 100], [-100, 100])
-            bpy.ops.mesh.bevel(offset=self.bevel_offset, segments=10)
-        bpy.ops.object.mode_set(mode='OBJECT')
-
-        # This makes the dovetail cutout
-        cutter_size = [self.PIXEL_BOTTOM[0] + 2 * self.holder_clearance,
-                       self.PIXEL_BOTTOM[1] + self.holder_y_extension,
-                       20]
-        dovetail = [self.DOVE_INNER_WIDTH, self.DOVE_DEPTH, 10]
-        xyz_location = [0, cutter_size[1] / 2 - .001,
-                        dovetail[2] / 2 + self.holder_space_below_dove - self.holder_clearance]
-        cutter = add_cube(cutter_size, xyz_location, 'cutter')
-        select_verts(cutter, [-100, 100], [0, 100], [-100, 100])
-        bpy.ops.mesh.extrude_region()
-        ratio = list(map(lambda x, y: x / y, dovetail, cutter_size))
-        bpy.ops.transform.resize(value=(ratio[0], 1, ratio[2]))
-        bpy.ops.mesh.extrude_context_move(TRANSFORM_OT_translate={"value": (0, dovetail[1], 0)})
-        bpy.ops.transform.resize(value=(self.DOVE_OUTER_WIDTH / self.DOVE_INNER_WIDTH, 1, 1))
-        for side in [1, -1]:
-            select_verts(cutter, [side * dovetail[0] / 2, 0], [0, 100], [-100, 100])
-            bpy.ops.mesh.bevel(offset=self.pixel_dove_bevel, segments=1)
-
-        bpy.ops.object.mode_set(mode='OBJECT')
-
-        # This makes the needle cut pieces
-        cut_size = [self.holder_size[0] - 2, 3, self.holder_size[2] + 1]
-        cut_location = [0, -cut_size[1] / 2 - self.holder_xyz[1], self.holder_size[2] / 2]
-        cut = add_cube(cut_size, cut_location, 'cut')
-        boolean_modifier(stabber, cut)
-
-        needle_size = [self.needle_diameter, self.needle_diameter, self.holder_size[2] + 1]
-        needle_location = [0, 0, self.holder_size[2] / 2]
-        needle = add_cube(needle_size, needle_location, 'needle')
-        bpy.ops.transform.rotate(value=pi / 4, orient_axis='Z')
-        bpy.ops.transform.translate(value=[0, -self.holder_xyz[1] + .001, 0])
-        boolean_modifier(stabber, needle)
-
-        delete([cut, needle])
-
-        # This makes the cap dovetail
-        dove2_size = [self.dove2_width, self.dove2_depth, self.holder_size[2] + 5]
-        dove2_location = [0, self.holder_size[1] - dove2_size[1] / 2 + .001,
-                          self.holder_size[2] / 2 - self.holder_wall_thickness]
-        cap_dovetail = add_cube(dove2_size, dove2_location, 'cap_dovetail')
-        select_verts(cap_dovetail, [-dove2_size[0] / 2, dove2_size[0] / 2], [0, dove2_location[1]], [-100, 100])
-        ratio = 1 + 2 * dove2_size[1] / sqrt(3) / dove2_size[0]
-        bpy.ops.transform.resize(value=(ratio, 1, 1))
-        boolean_modifier(stabber, cap_dovetail)
-        select_verts(stabber, [-self.dove2_width / 2, self.dove2_width / 2], [self.holder_size[1], 100],
-                     [-100, 100])
-        bpy.ops.mesh.bevel(offset=self.dove_bevel, segments=1)
-        mode(('OBJECT'))
-
-        # This makes the handle piece
-        handle_location = [0, self.handle_size[1] / 2 + cutter_size[1] + dovetail[1] + .001,
-                           self.holder_size[2] - self.handle_size[2] / 2 - .001]
-        handle = add_cube(self.handle_size, (0, 0, 0), 'handle')
-        for side in [1, -1]:
-            select_verts(handle, [side * 100, 0], [0, 100], [-100, 100])
-            bpy.ops.mesh.bevel(offset=1.3, segments=1)
-
-        mode(('OBJECT'))
-        translate(handle_location)
-        boolean_modifier(stabber, handle, modifier='UNION')
-
-        # This makes the cutout for the securing hex nut
-        hex_location = [0, 5 / 2 + cutter_size[1] + dovetail[1] + .001,
-                        self.holder_size[2] - self.handle_size[2] / 2 - .001]
-        # hex_location = [0, self.screw_y-self.holder_xyz[1],
-        #                 self.holder_size[2] - handle_size[2] / 2 - .001]
-        bpy.ops.mesh.primitive_cylinder_add(radius=self.hex_radius, depth=self.hex_depth, vertices=6,
-                                            location=hex_location)
-        hex_cut = bpy.context.active_object
-        bpy.ops.transform.rotate(value=pi / 6, orient_axis='Z')
-        select_verts(hex_cut, [-100, 100], [-100, -self.hex_radius], [-100, 100])
-        translate((-self.hex_radius, 0, 0))
-        mode('OBJECT')
-        bpy.ops.transform.rotate(value=pi, orient_axis='Z')
-        mode('OBJECT')
-
-        # This makes the cutout for the screw to come through
-        bpy.ops.mesh.primitive_cylinder_add(radius=self.SCREW_THREAD_RADIUS, depth=self.SCREW_LENGTH,
-                                            location=hex_location)
-        screw_cut = bpy.context.active_object
-
-        # This applies boolean modifiers, deletes, and translates
-        boolean_modifier(stabber, hex_cut)
-        boolean_modifier(stabber, screw_cut)
-
-        for obj in [cutter, handle, cap_dovetail, hex_cut, screw_cut]:
-            activate([obj])
-            bpy.ops.object.delete(use_global=False)
-
-        activate([stabber])
-        select_verts(stabber, [-ratio * dove2_size[0] / 2, ratio * dove2_size[0] / 2],
-                     [self.holder_size[1] - dove2_size[1], 100], [-100, 0])
-        bpy.ops.mesh.bevel(offset=self.base_bevel, segments=1)
-
-        activate([stabber])
-        bpy.ops.transform.translate(value=self.holder_xyz)
-        if shield:
-            self.add_shield(stabber, shield_height=self.holder_size[2] + 1, radius=self.holder_size[0] / 2 + 2,
-                            location=(0, 2, self.holder_size[2] / 2 + 3))
-
     def surgery(self, shield=False):
         # This makes the piece that permanently attaches to the pixel
         holder_location = [0, self.holder_size[1] / 2, self.holder_size[2] / 2]
@@ -1704,52 +1595,6 @@ class Chamber:
 
         self.cable_radius = .8
         self.cable_location = [0, -self.cable_radius * 2 / 3, self.h_top]
-
-    def frame2(self):
-        frame_size = [self.width_port + 2 * self.width_port * cos(self.angle_port) + 2 * self.thickness,
-                      self.width_port * sin(self.angle_port) + self.width_side + self.thickness +
-                      + self.frame_back_thickness,
-                      sum(self.heights)]
-        frame_location = [0, -frame_size[1] / 2 + self.thickness, -frame_size[2] / 2 + self.h_top]
-        frame = add_cube(frame_size, frame_location, 'frame')
-
-        for side in [INF_POS, INF_NEG]:
-            select_verts(frame, side, INF_POS, INF)
-            bevel((self.width_port + self.thickness * 2 * tan(pi / 8)) / sqrt(2))
-        mode('OBJECT')
-
-        inner_cut_size = [frame_size[0] - self.thickness * 2,
-                          frame_size[1] - self.thickness - self.frame_back_thickness, frame_size[2] + 1]
-        inner_cut = add_cube(inner_cut_size, (0, 0, 0), 'inner_cut')
-        translate([0, -inner_cut_size[1] / 2, frame_location[2]])
-        for side in [INF_POS, INF_NEG]:
-            select_verts(inner_cut, side, INF_POS, INF)
-            bevel(self.width_port / sqrt(2))
-
-        select_verts(inner_cut, INF, INF_NEG, INF)
-        extrude_move([0, -self.frame_back_thickness / 2, 0])
-        resize([self.frame_back_thickness / inner_cut_size[0] / np.tan(self.back_dove_angle) + 1, 1, 1])
-        extrude_move([0, -self.extra_back_clearance, 0])
-        mode('OBJECT')
-        boolean_modifier(frame, inner_cut)
-        delete([inner_cut])
-
-        middle_cut = add_cube([frame_size[0] / 2, frame_size[1], frame_size[2] + 1], (0, 0, 0), 'middle_cut')
-        translate([0, frame_location[1] - frame_size[1] / 2, frame_location[2]])
-        boolean_modifier(frame, middle_cut)
-        delete([middle_cut])
-
-        bottom_cut_size = [self.width_port, self.thickness + .1, frame_size[2]]
-        bottom_cut = add_cube(bottom_cut_size, [0, 0, 0], 'bottom_cut')
-
-        width_ratio = 2 * bottom_cut_size[1] / bottom_cut_size[0] / np.tan(67 * pi / 180) + 1
-        translate([0, self.thickness / 2, -frame_size[2] / 2 - self.h_locking])
-        select_verts(bottom_cut, INF, INF_POS, INF)
-        resize([width_ratio, 1, 1])
-        select_verts(bottom_cut, INF_POS, INF, INF)
-        extrude_move([self.width_port / sqrt(2), -self.width_port / sqrt(2), 0])
-
-        # lock_cut
 
     def frame(self):
         x_inner_shifts = self.x_inner_shifts
@@ -2854,3 +2699,49 @@ class Chamber:
             boolean_modifier(holder, test_block, 'INTERSECT')
             delete([test_block])
         return holder
+
+    def frame_update(self):
+        frame_size = [self.width_port + 2 * self.width_port * cos(self.angle_port) + 2 * self.thickness,
+                      self.width_port * sin(self.angle_port) + self.width_side + self.thickness +
+                      + self.frame_back_thickness,
+                      sum(self.heights)]
+        frame_location = [0, -frame_size[1] / 2 + self.thickness, -frame_size[2] / 2 + self.h_top]
+        frame = add_cube(frame_size, frame_location, 'frame')
+
+        for side in [INF_POS, INF_NEG]:
+            select_verts(frame, side, INF_POS, INF)
+            bevel((self.width_port + self.thickness * 2 * tan(pi / 8)) / sqrt(2))
+        mode('OBJECT')
+
+        inner_cut_size = [frame_size[0] - self.thickness * 2,
+                          frame_size[1] - self.thickness - self.frame_back_thickness, frame_size[2] + 1]
+        inner_cut = add_cube(inner_cut_size, (0, 0, 0), 'inner_cut')
+        translate([0, -inner_cut_size[1] / 2, frame_location[2]])
+        for side in [INF_POS, INF_NEG]:
+            select_verts(inner_cut, side, INF_POS, INF)
+            bevel(self.width_port / sqrt(2))
+
+        select_verts(inner_cut, INF, INF_NEG, INF)
+        extrude_move([0, -self.frame_back_thickness / 2, 0])
+        resize([self.frame_back_thickness / inner_cut_size[0] / np.tan(self.back_dove_angle) + 1, 1, 1])
+        extrude_move([0, -self.extra_back_clearance, 0])
+        mode('OBJECT')
+        boolean_modifier(frame, inner_cut)
+        delete([inner_cut])
+
+        middle_cut = add_cube([frame_size[0] / 2, frame_size[1], frame_size[2] + 1], (0, 0, 0), 'middle_cut')
+        translate([0, frame_location[1] - frame_size[1] / 2, frame_location[2]])
+        boolean_modifier(frame, middle_cut)
+        delete([middle_cut])
+
+        bottom_cut_size = [self.width_port, self.thickness + .1, frame_size[2]]
+        bottom_cut = add_cube(bottom_cut_size, [0, 0, 0], 'bottom_cut')
+
+        width_ratio = 2 * bottom_cut_size[1] / bottom_cut_size[0] / np.tan(67 * pi / 180) + 1
+        translate([0, self.thickness / 2, -frame_size[2] / 2 - self.h_locking])
+        select_verts(bottom_cut, INF, INF_POS, INF)
+        resize([width_ratio, 1, 1])
+        select_verts(bottom_cut, INF_POS, INF, INF)
+        extrude_move([self.width_port / sqrt(2), -self.width_port / sqrt(2), 0])
+
+        # lock_cut
